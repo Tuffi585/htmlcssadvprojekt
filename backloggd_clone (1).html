@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayVault — Track, Rate, and Share Your Video Games</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        vault: {
+                            900: '#0b0f19',
+                            800: '#131b2e',
+                            700: '#1e293b',
+                            600: '#334155',
+                            500: '#64748b',
+                            accent: '#10b981', // Emerald accent inspired by Backloggd/Steam
+                            accentHover: '#059669',
+                            purple: '#8b5cf6',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0b0f19;
+            color: #f8fafc;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+        .game-card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .game-card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.2);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-vault-900 text-slate-100 selection:bg-vault-accent selection:text-vault-900">
+
+    <header class="sticky top-0 z-50 bg-vault-800/90 backdrop-blur-md border-b border-vault-700/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-6">
+                <a href="#" onclick="switchTab('home')" class="flex items-center space-x-2 text-vault-accent font-extrabold text-2xl tracking-wider">
+                    <div class="w-9 h-9 rounded-lg bg-vault-accent flex items-center justify-center text-vault-900 shadow-lg shadow-vault-accent/20">
+                        <i class="fa-solid fa-gamepad text-lg"></i>
+                    </div>
+                    <span>PLAYVAULT</span>
+                </a>
+                <nav class="hidden md:flex space-x-1">
+                    <button onclick="switchTab('home')" id="nav-home" class="px-3 py-2 rounded-lg text-sm font-semibold transition text-vault-accent bg-vault-700/50">
+                        <i class="fa-solid fa-compass mr-1.5"></i> Discover
+                    </button>
+                    <button onclick="switchTab('library')" id="nav-library" class="px-3 py-2 rounded-lg text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-vault-700/30">
+                        <i class="fa-solid fa-layer-group mr-1.5"></i> My Library <span id="library-count-badge" class="ml-1 px-1.5 py-0.5 text-xs bg-vault-700 rounded-full text-vault-accent">0</span>
+                    </button>
+                    <button onclick="switchTab('diary')" id="nav-diary" class="px-3 py-2 rounded-lg text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-vault-700/30">
+                        <i class="fa-solid fa-book-open mr-1.5"></i> Journal
+                    </button>
+                    <button onclick="switchTab('stats')" id="nav-stats" class="px-3 py-2 rounded-lg text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-vault-700/30">
+                        <i class="fa-solid fa-chart-pie mr-1.5"></i> Profile & Stats
+                    </button>
+                </nav>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="relative hidden sm:block w-56 lg:w-64">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-search text-sm"></i>
+                    </span>
+                    <input type="text" id="global-search" oninput="handleGlobalSearch(this.value)" placeholder="Search 55+ games..." class="w-full pl-9 pr-4 py-1.5 bg-vault-900 border border-vault-700 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-vault-accent transition">
+                </div>
+                <button onclick="openAddCustomGameModal()" class="hidden sm:flex items-center space-x-1.5 bg-vault-700 hover:bg-vault-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition border border-vault-600">
+                    <i class="fa-solid fa-plus text-vault-accent"></i>
+                    <span>Add Game</span>
+                </button>
+                <div class="flex items-center space-x-2 border-l border-vault-700 pl-3">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-vault-purple to-vault-accent flex items-center justify-center font-bold text-white text-sm shadow-md">
+                        G
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile subheader navigation -->
+        <div class="md:hidden flex overflow-x-auto px-4 py-2 border-t border-vault-700/40 bg-vault-800 space-x-2">
+            <button onclick="switchTab('home')" id="mob-nav-home" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold text-vault-accent bg-vault-700/60">Discover</button>
+            <button onclick="switchTab('library')" id="mob-nav-library" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300">My Library</button>
+            <button onclick="switchTab('diary')" id="mob-nav-diary" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300">Journal</button>
+            <button onclick="switchTab('stats')" id="mob-nav-stats" class="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300">Profile & Stats</button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- VIEW: HOME / DISCOVER -->
+        <div id="view-home" class="space-y-8">
+            <!-- Hero Featured Banner -->
+            <div id="hero-banner" class="relative rounded-2xl overflow-hidden bg-gradient-to-r from-vault-800 to-vault-700 border border-vault-700/80 shadow-2xl p-6 sm:p-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                <div class="absolute inset-0 opacity-15 bg-cover bg-center" style="background-image: url('https://images.igdb.com/igdb/image/upload/t_1080p/sc6q8y.jpg')"></div>
+                <div class="relative z-10 max-w-xl space-y-4">
+                    <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-vault-accent/20 text-vault-accent border border-vault-accent/30">
+                        <i class="fa-solid fa-fire"></i> Masterpiece Spotlight
+                    </span>
+                    <h1 id="hero-title" class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">Elden Ring</h1>
+                    <p id="hero-desc" class="text-slate-300 text-sm sm:text-base leading-relaxed">Rise, Tarnished, and be guided by grace to brandish the power of the Elden Ring and become an Elden Lord in the Lands Between.</p>
+                    <div class="flex flex-wrap gap-3 pt-2">
+                        <button onclick="openGameDetail(1)" class="px-5 py-2.5 bg-vault-accent hover:bg-vault-accentHover text-vault-900 font-bold rounded-xl text-sm transition shadow-lg shadow-vault-accent/20 flex items-center space-x-2">
+                            <i class="fa-solid fa-info-circle"></i><span>View Game Details</span>
+                        </button>
+                        <button onclick="openGameDetail(1)" class="px-4 py-2.5 bg-vault-700 hover:bg-vault-600 text-slate-200 font-semibold rounded-xl text-sm transition border border-vault-600 flex items-center space-x-2">
+                            <i class="fa-solid fa-plus"></i><span>Quick Add to Shelf</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="relative z-10 w-full md:w-56 h-72 sm:h-80 rounded-xl overflow-hidden shadow-2xl border border-vault-600 group">
+                    <img id="hero-img" src="https://images.igdb.com/igdb/image/upload/t_cover_big/co4niy.jpg" alt="Featured Game" class="w-full h-full object-cover transform group-hover:scale-105 transition duration-500">
+                </div>
+            </div>
+
+            <!-- Filters and Categories -->
+            <div class="space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-vault-800/60 p-4 rounded-xl border border-vault-700/60">
+                    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-2"><i class="fa-solid fa-filter mr-1"></i> Genre:</span>
+                        <button onclick="filterByGenre('All')" id="genre-All" class="genre-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-vault-accent text-vault-900 transition">All</button>
+                        <button onclick="filterByGenre('Action RPG')" id="genre-Action RPG" class="genre-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Action RPG</button>
+                        <button onclick="filterByGenre('Open World')" id="genre-Open World" class="genre-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Open World</button>
+                        <button onclick="filterByGenre('Strategy')" id="genre-Strategy" class="genre-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Strategy</button>
+                        <button onclick="filterByGenre('Survival Horror')" id="genre-Survival Horror" class="genre-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Horror</button>
+                        <button onclick="filterByGenre('Indie')" id="genre-Indie" class="genre-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Indie</button>
+                        <button onclick="filterByGenre('Shooter')" id="genre-Shooter" class="genre-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Shooter</button>
+                    </div>
+                    <div class="flex items-center space-x-3 w-full md:w-auto justify-between md:justify-end">
+                        <select id="sort-select" onchange="sortGames(this.value)" class="bg-vault-900 border border-vault-700 rounded-lg text-xs text-slate-200 px-3 py-2 focus:outline-none focus:border-vault-accent">
+                            <option value="popular">Sort by: Popularity / Rating</option>
+                            <option value="rating">Sort by: Highest Rating</option>
+                            <option value="newest">Sort by: Release Year</option>
+                            <option value="title">Sort by: Title (A-Z)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Games Grid Header -->
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold tracking-tight text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-gamepad text-vault-accent"></i>
+                        <span id="catalog-heading">Popular Video Games Catalog</span>
+                    </h2>
+                    <span id="game-count-label" class="text-xs text-slate-400">Showing games</span>
+                </div>
+
+                <!-- Games Grid -->
+                <div id="games-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: LIBRARY -->
+        <div id="view-library" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-vault-800 p-6 rounded-2xl border border-vault-700">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-layer-group text-vault-accent"></i>
+                        <span>My Game Library & Shelves</span>
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Organize your backlog, active playthroughs, wishlists, and completed masterpieces.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="filterLibraryStatus('all')" id="lib-filter-all" class="lib-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-vault-accent text-vault-900 transition">All (<span id="count-all">0</span>)</button>
+                    <button onclick="filterLibraryStatus('Playing')" id="lib-filter-Playing" class="lib-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Playing (<span id="count-Playing">0</span>)</button>
+                    <button onclick="filterLibraryStatus('Completed')" id="lib-filter-Completed" class="lib-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Completed (<span id="count-Completed">0</span>)</button>
+                    <button onclick="filterLibraryStatus('Backlog')" id="lib-filter-Backlog" class="lib-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Backlog (<span id="count-Backlog">0</span>)</button>
+                    <button onclick="filterLibraryStatus('Wishlist')" id="lib-filter-Wishlist" class="lib-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Wishlist (<span id="count-Wishlist">0</span>)</button>
+                    <button onclick="filterLibraryStatus('Dropped')" id="lib-filter-Dropped" class="lib-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-vault-700 text-slate-300 hover:bg-vault-600 transition">Dropped (<span id="count-Dropped">0</span>)</button>
+                </div>
+            </div>
+
+            <!-- Library Content Grid -->
+            <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Populated dynamically -->
+            </div>
+            <div id="library-empty" class="hidden text-center py-20 bg-vault-800/40 rounded-2xl border border-vault-700/60 space-y-4">
+                <div class="w-16 h-16 mx-auto rounded-full bg-vault-700 flex items-center justify-center text-vault-accent text-2xl">
+                    <i class="fa-solid fa-ghost"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Your library shelf is empty</h3>
+                <p class="text-slate-400 text-sm max-w-sm mx-auto">Explore the Discover tab or search for any game to add it to your library shelves!</p>
+                <button onclick="switchTab('home')" class="px-4 py-2 bg-vault-accent text-vault-900 font-bold text-sm rounded-xl hover:bg-vault-accentHover transition">Discover Games</button>
+            </div>
+        </div>
+
+        <!-- VIEW: JOURNAL -->
+        <div id="view-diary" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-vault-800 p-6 rounded-2xl border border-vault-700">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-book-open text-vault-accent"></i>
+                        <span>Gaming Journal & Reviews</span>
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Your personal log of play sessions, milestones, star ratings, and written reviews.</p>
+                </div>
+                <button onclick="openLogModal()" class="px-4 py-2.5 bg-vault-accent hover:bg-vault-accentHover text-vault-900 font-bold rounded-xl text-sm transition flex items-center space-x-2 shadow-lg shadow-vault-accent/20">
+                    <i class="fa-solid fa-pen-to-square"></i><span>Log Activity / Review</span>
+                </button>
+            </div>
+
+            <div id="diary-list" class="space-y-4">
+                <!-- Populated dynamically -->
+            </div>
+            <div id="diary-empty" class="hidden text-center py-20 bg-vault-800/40 rounded-2xl border border-vault-700/60 space-y-4">
+                <div class="w-16 h-16 mx-auto rounded-full bg-vault-700 flex items-center justify-center text-vault-accent text-2xl">
+                    <i class="fa-solid fa-feather"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">No journal entries yet</h3>
+                <p class="text-slate-400 text-sm max-w-sm mx-auto">Rate games, write reviews, or log completed sessions to build your gaming journal.</p>
+            </div>
+        </div>
+
+        <!-- VIEW: STATS & PROFILE -->
+        <div id="view-stats" class="hidden space-y-6">
+            <div class="bg-vault-800 p-6 rounded-2xl border border-vault-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-pie text-vault-accent"></i>
+                        <span>Gamer Profile & Statistics</span>
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Overview of your gaming habits, total hours logged, and completion breakdown.</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="exportData()" class="px-3.5 py-2 bg-vault-700 hover:bg-vault-600 text-slate-200 text-xs font-semibold rounded-xl transition border border-vault-600 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-download text-vault-accent"></i><span>Export Backup</span>
+                    </button>
+                    <label class="px-3.5 py-2 bg-vault-700 hover:bg-vault-600 text-slate-200 text-xs font-semibold rounded-xl transition border border-vault-600 flex items-center space-x-1.5 cursor-pointer">
+                        <i class="fa-solid fa-upload text-vault-purple"></i><span>Import Backup</span>
+                        <input type="file" id="import-file" onchange="importData(event)" accept=".json" class="hidden">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Stats Overview Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-vault-800 p-5 rounded-xl border border-vault-700 space-y-1">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Games Tracked</span>
+                    <div id="stat-total" class="text-3xl font-extrabold text-vault-accent">0</div>
+                </div>
+                <div class="bg-vault-800 p-5 rounded-xl border border-vault-700 space-y-1">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Completed Games</span>
+                    <div id="stat-completed" class="text-3xl font-extrabold text-vault-purple">0</div>
+                </div>
+                <div class="bg-vault-800 p-5 rounded-xl border border-vault-700 space-y-1">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Playtime</span>
+                    <div id="stat-hours" class="text-3xl font-extrabold text-vault-amber">0 hrs</div>
+                </div>
+                <div class="bg-vault-800 p-5 rounded-xl border border-vault-700 space-y-1">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Journal Entries</span>
+                    <div id="stat-reviews" class="text-3xl font-extrabold text-vault-rose">0</div>
+                </div>
+            </div>
+
+            <!-- Favorite Games Showcase -->
+            <div class="bg-vault-800 p-6 rounded-2xl border border-vault-700 space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-heart text-vault-rose"></i>
+                    <span>Favorite Games Showcase</span>
+                </h3>
+                <div id="favorite-showcase-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Detailed Breakdowns -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-vault-800 p-6 rounded-2xl border border-vault-700 space-y-4">
+                    <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-chart-bar text-vault-accent"></i>
+                        <span>Status Distribution</span>
+                    </h3>
+                    <div id="status-bars" class="space-y-3 pt-2">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+                <div class="bg-vault-800 p-6 rounded-2xl border border-vault-700 space-y-4">
+                    <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-desktop text-vault-amber"></i>
+                        <span>Platform Breakdown</span>
+                    </h3>
+                    <div id="platform-bars" class="space-y-3 pt-2">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- GAME DETAIL MODAL -->
+    <div id="modal-game-detail" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+        <div class="bg-vault-800 border border-vault-700 w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            <div id="detail-header" class="relative h-48 sm:h-64 bg-cover bg-center flex items-end p-6">
+                <div class="absolute inset-0 bg-gradient-to-t from-vault-800 via-vault-800/40 to-transparent"></div>
+                <button onclick="closeModal('modal-game-detail')" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+                <div class="relative z-10 flex items-end space-x-4">
+                    <img id="detail-cover" src="" alt="Cover" class="w-24 sm:w-32 h-36 sm:h-48 rounded-xl object-cover shadow-xl border-2 border-vault-700">
+                    <div>
+                        <span id="detail-genre" class="px-2.5 py-1 rounded-md text-xs font-bold bg-vault-accent/20 text-vault-accent border border-vault-accent/30">Action RPG</span>
+                        <h2 id="detail-title" class="text-2xl sm:text-3xl font-extrabold text-white mt-1">Game Title</h2>
+                        <p id="detail-meta" class="text-slate-300 text-xs sm:text-sm mt-1">Released 2022 • PC, PS5, Xbox</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6 flex-1">
+                <div class="flex flex-wrap items-center justify-between gap-4 bg-vault-900/60 p-4 rounded-xl border border-vault-700/60">
+                    <div class="flex items-center space-x-6">
+                        <div>
+                            <span class="text-xs text-slate-400 block">Global Rating</span>
+                            <div class="flex items-center space-x-1 text-vault-amber font-bold text-lg mt-0.5">
+                                <i class="fa-solid fa-star"></i>
+                                <span id="detail-rating">4.8</span>
+                                <span class="text-xs text-slate-500 font-normal">/ 5.0</span>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-xs text-slate-400 block">Developer</span>
+                            <span id="detail-dev" class="text-sm font-semibold text-white">FromSoftware</span>
+                        </div>
+                    </div>
+                    <button id="favorite-btn" onclick="toggleFavoriteCurrentGame()" class="px-3.5 py-2 rounded-xl bg-vault-700 hover:bg-vault-600 text-slate-300 text-sm font-semibold transition border border-vault-600 flex items-center space-x-1.5">
+                        <i class="fa-regular fa-heart text-vault-rose"></i><span>Favorite</span>
+                    </button>
+                </div>
+
+                <div class="space-y-2">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Synopsis</h3>
+                    <p id="detail-description" class="text-slate-300 text-sm leading-relaxed">Description goes here...</p>
+                </div>
+
+                <div class="border-t border-vault-700 pt-6 space-y-4">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-vault-accent">Manage in Your Library</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1.5">Play Status</label>
+                            <select id="manage-status" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                                <option value="None">Not in Library</option>
+                                <option value="Playing">Playing</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Backlog">Backlog</option>
+                                <option value="Wishlist">Wishlist</option>
+                                <option value="Dropped">Dropped</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1.5">Your Rating (Out of 5 Stars)</label>
+                            <select id="manage-rating" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                                <option value="0">Unrated</option>
+                                <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                                <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                                <option value="3">⭐⭐⭐ (3/5)</option>
+                                <option value="2">⭐⭐ (2/5)</option>
+                                <option value="1">⭐ (1/5)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1.5">Playtime (Hours)</label>
+                            <input type="number" id="manage-playtime" min="0" placeholder="e.g. 45" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1.5">Platform</label>
+                            <select id="manage-platform" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                                <option value="PC">PC / Steam</option>
+                                <option value="PlayStation 5">PlayStation 5</option>
+                                <option value="Xbox Series X">Xbox Series X</option>
+                                <option value="Nintendo Switch">Nintendo Switch</option>
+                                <option value="Steam Deck">Steam Deck</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Write Review / Journal Notes</label>
+                        <textarea id="manage-review" rows="3" placeholder="What did you think of the game? Any standout moments or critiques..." class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent"></textarea>
+                    </div>
+                    <button onclick="saveGameLibraryEntry()" class="w-full py-3 bg-vault-accent hover:bg-vault-accentHover text-vault-900 font-bold rounded-xl text-sm transition shadow-lg shadow-vault-accent/20">
+                        Save to Library & Journal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOG ACTIVITY MODAL -->
+    <div id="modal-log" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+        <div class="bg-vault-800 border border-vault-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl p-6 space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-extrabold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-to-square text-vault-accent"></i>
+                    <span>Log Review / Session</span>
+                </h3>
+                <button onclick="closeModal('modal-log')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1.5">Select Game</label>
+                    <select id="log-game-select" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                        <!-- Populated -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Rating</label>
+                        <select id="log-rating" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                            <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                            <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                            <option value="3">⭐⭐⭐ (3/5)</option>
+                            <option value="2">⭐⭐ (2/5)</option>
+                            <option value="1">⭐ (1/5)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Hours Played Added</label>
+                        <input type="number" id="log-hours" min="1" value="5" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1.5">Review / Notes</label>
+                    <textarea id="log-text" rows="4" placeholder="Write your thoughts..." class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent"></textarea>
+                </div>
+                <button onclick="submitLogEntry()" class="w-full py-3 bg-vault-accent hover:bg-vault-accentHover text-vault-900 font-bold rounded-xl text-sm transition shadow-lg shadow-vault-accent/20">
+                    Publish Journal Entry
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD CUSTOM GAME MODAL -->
+    <div id="modal-custom-game" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden">
+        <div class="bg-vault-800 border border-vault-700 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl p-6 space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-extrabold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-plus-circle text-vault-accent"></i>
+                    <span>Add Custom Game</span>
+                </h3>
+                <button onclick="closeModal('modal-custom-game')" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1.5">Game Title</label>
+                    <input type="text" id="custom-title" placeholder="e.g. Hollow Knight: Silksong" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Genre</label>
+                        <input type="text" id="custom-genre" placeholder="e.g. Metroidvania" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1.5">Release Year</label>
+                        <input type="number" id="custom-year" value="2026" class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1.5">Cover Image URL</label>
+                    <input type="text" id="custom-cover" placeholder="https://images.igdb.com/..." class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1.5">Synopsis / Description</label>
+                    <textarea id="custom-desc" rows="3" placeholder="Brief summary of the game..." class="w-full bg-vault-900 border border-vault-700 rounded-xl px-3.5 py-2 text-sm text-slate-200 focus:outline-none focus:border-vault-accent"></textarea>
+                </div>
+                <button onclick="submitCustomGame()" class="w-full py-3 bg-vault-accent hover:bg-vault-accentHover text-vault-900 font-bold rounded-xl text-sm transition shadow-lg shadow-vault-accent/20">
+                    Add Game to Catalog
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-vault-800 border border-vault-accent text-slate-100 px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3">
+        <i class="fa-solid fa-circle-check text-vault-accent text-lg"></i>
+        <span id="toast-msg" class="text-sm font-semibold">Action completed successfully!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-vault-800/80 border-t border-vault-700/60 mt-12 py-8 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 space-y-3">
+            <p class="font-bold text-slate-400 tracking-wider">PLAYVAULT — VIDEO GAME TRACKER & REVIEWS</p>
+            <p>Inspired by Backloggd & Steam. Built with modern web technologies, Tailwind CSS, and local data persistence.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Comprehensive IGDB-backed 55+ Video Game Catalog with accurate box art covers
+        const defaultGames = [
+            { id: 1, title: "Elden Ring", genre: "Action RPG", year: 2022, rating: 4.9, developer: "FromSoftware", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4niy.jpg", description: "Rise, Tarnished, and be guided by grace to brandish the power of the Elden Ring and become an Elden Lord in the Lands Between." },
+            { id: 2, title: "Baldur's Gate 3", genre: "Strategy", year: 2023, rating: 4.9, developer: "Larian Studios", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co647z.jpg", description: "Gather your party and return to the Forgotten Realms in a tale of fellowship and betrayal, sacrifice and survival, and the lure of absolute power." },
+            { id: 3, title: "Cyberpunk 2077", genre: "Action RPG", year: 2020, rating: 4.4, developer: "CD Projekt Red", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2mtt.jpg", description: "An open-world, action-adventure RPG set in the megalopolis of Night City, where you play as a cyberpunk mercenary." },
+            { id: 4, title: "Grand Theft Auto V", genre: "Open World", year: 2013, rating: 4.8, developer: "Rockstar Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1vzz.jpg", description: "When a young street hustler, a retired bank robber and a terrifying psychopath find themselves entangled with some of the most frightening elements of the criminal underworld..." },
+            { id: 5, title: "Grand Theft Auto VI", genre: "Open World", year: 2025, rating: 4.9, developer: "Rockstar Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co7bnx.jpg", description: "Head into the state of Leonida, home to the neon-soaked streets of Vice City and beyond in the biggest, most immersive evolution of the Grand Theft Auto series yet." },
+            { id: 6, title: "The Witcher 3: Wild Hunt", genre: "Action RPG", year: 2015, rating: 4.9, developer: "CD Projekt Red", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg", description: "You are Geralt of Rivia, mercenary monster slayer. Before you stands a war-torn, monster-infested continent you can explore at will." },
+            { id: 7, title: "The Legend of Zelda: Breath of the Wild", genre: "Open World", year: 2017, rating: 4.8, developer: "Nintendo", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/coabec.jpg", description: "Step into a world of discovery, exploration, and adventure in The Legend of Zelda: Breath of the Wild." },
+            { id: 8, title: "The Legend of Zelda: Tears of the Kingdom", genre: "Open World", year: 2023, rating: 4.9, developer: "Nintendo", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co5vmg.jpg", description: "An epic adventure across the land and skies of Hyrule awaits in this acclaimed sequel to Breath of the Wild." },
+            { id: 9, title: "Hades", genre: "Indie", year: 2020, rating: 4.8, developer: "Supergiant Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2f7c.jpg", description: "Defy the god of the dead as you hack and slash out of the Underworld in this rogue-like dungeon crawler from the creators of Bastion." },
+            { id: 10, title: "Hades II", genre: "Indie", year: 2024, rating: 4.8, developer: "Supergiant Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6q8y.jpg", description: "Battle beyond the Underworld using the dark sorcery of Melinoë, the Immortal Princess of the Underworld." },
+            { id: 11, title: "God of War Ragnarök", genre: "Action RPG", year: 2022, rating: 4.8, developer: "Santa Monica Studio", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co5s5w.jpg", description: "Embark on an epic and heartfelt journey as Kratos and Atreus struggle with holding on and letting go." },
+            { id: 12, title: "Red Dead Redemption 2", genre: "Open World", year: 2018, rating: 4.9, developer: "Rockstar Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1q43.jpg", description: "Arthur Morgan and the Van der Linde gang are outlaws on the run with federal agents and bounty hunters massing on their heels." },
+            { id: 13, title: "Minecraft", genre: "Indie", year: 2011, rating: 4.8, developer: "Mojang Studios", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co49xa.jpg", description: "Explore infinite worlds and build everything from the simplest of homes to the grandest of castles." },
+            { id: 14, title: "Terraria", genre: "Indie", year: 2011, rating: 4.7, developer: "Re-Logic", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/covwtz.jpg", description: "Dig, fight, explore, build! Nothing is impossible in this action-packed adventure sandbox." },
+            { id: 15, title: "Hollow Knight", genre: "Indie", year: 2017, rating: 4.8, developer: "Team Cherry", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r2f.jpg", description: "Forge your own path in Hollow Knight! An epic action adventure through a ruined vast kingdom of insects and heroes." },
+            { id: 16, title: "Hollow Knight: Silksong", genre: "Indie", year: 2026, rating: 4.7, developer: "Team Cherry", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r2g.jpg", description: "Play as Hornet, princess-protector of Hallownest, as she adventures through a whole new kingdom ruled by silk and song." },
+            { id: 17, title: "Final Fantasy VII Rebirth", genre: "Action RPG", year: 2024, rating: 4.8, developer: "Square Enix", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6uzf.jpg", description: "The unknown journey continues in this massive standalone adventure set across a vast planet." },
+            { id: 18, title: "Persona 5 Royal", genre: "Strategy", year: 2019, rating: 4.8, developer: "Atlus", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1x3c.jpg", description: "Don the mask of the Phantom Thieves and stage grand heists to infiltrate the minds of the corrupt." },
+            { id: 19, title: "Chrono Trigger", genre: "Action RPG", year: 1995, rating: 4.9, developer: "Square", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2el9.jpg", description: "Journey through time to save the future in this timeless classic JRPG masterpiece." },
+            { id: 20, title: "Super Mario Odyssey", genre: "Open World", year: 2017, rating: 4.8, developer: "Nintendo", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1mxf.jpg", description: "Join Mario on a massive, globe-trotting 3D adventure utilizing his incredible new abilities." },
+            { id: 21, title: "Super Mario Bros. Wonder", genre: "Indie", year: 2023, rating: 4.7, developer: "Nintendo", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6u4v.jpg", description: "Classic Mario side-scrolling gameplay is turned on its head with the addition of Wonder Flowers." },
+            { id: 22, title: "Portal 2", genre: "Strategy", year: 2011, rating: 4.9, developer: "Valve", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rs3.jpg", description: "The 'Perplexing Puzzle Game of the Year' returns with innovative portal mechanics and dark humor." },
+            { id: 23, title: "Half-Life 2", genre: "Shooter", year: 2004, rating: 4.9, developer: "Valve", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1sfz.jpg", description: "By taking the crowbar in hand on the desolate surface of Earth, scientist Gordon Freeman fights for humanity." },
+            { id: 24, title: "Resident Evil 4 Remake", genre: "Survival Horror", year: 2023, rating: 4.7, developer: "Capcom", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co5xbu.jpg", description: "Survival is just the beginning as Leon S. Kennedy tracks the president's kidnapped daughter to a European village." },
+            { id: 25, title: "Monster Hunter Wilds", genre: "Action RPG", year: 2025, rating: 4.8, developer: "Capcom", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co7vsn.jpg", description: "Experience the ultimate hunting action in a living, breathing ecosystem full of untamed monsters." },
+            { id: 26, title: "Black Myth: Wukong", genre: "Action RPG", year: 2024, rating: 4.7, developer: "Game Science", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6w82.jpg", description: "An action RPG rooted in Chinese mythology and Journey to the West." },
+            { id: 27, title: "Metal Gear Solid V: The Phantom Pain", genre: "Shooter", year: 2015, rating: 4.7, developer: "Konami", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1vbd.jpg", description: "The definitive tactical espionage action experience with open-world freedom." },
+            { id: 28, title: "Dark Souls III", genre: "Action RPG", year: 2016, rating: 4.8, developer: "FromSoftware", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1vnc.jpg", description: "As fires fade and the world falls into ruin, journey into a universe filled with more colossal foes and dark secrets." },
+            { id: 29, title: "Bloodborne", genre: "Action RPG", year: 2015, rating: 4.9, developer: "FromSoftware", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1tkz.jpg", description: "Hunt your nightmares as you search for answers in the ancient city of Yharnam, cursed with a strange endemic illness." },
+            { id: 30, title: "Demon's Souls", genre: "Action RPG", year: 2020, rating: 4.7, developer: "Bluepoint Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2g4g.jpg", description: "From PlayStation Studios and Bluepoint Games comes a remake of the classic PlayStation masterpiece." },
+            { id: 31, title: "Disco Elysium", genre: "Strategy", year: 2019, rating: 4.8, developer: "ZA/UM", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2edw.jpg", description: "You're a detective with a unique skill system at your disposal and a whole city carving its way across your path." },
+            { id: 32, title: "Baldur's Gate", genre: "Strategy", year: 1998, rating: 4.6, developer: "BioWare", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2kmm.jpg", description: "The classic Dungeons & Dragons fantasy roleplaying epic that started the legendary series." },
+            { id: 33, title: "Baldur's Gate II", genre: "Strategy", year: 2000, rating: 4.8, developer: "BioWare", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2kmn.jpg", description: "Kidnapped and imprisoned by a wizard attempting to harness your power, you must gather your party for vengeance." },
+            { id: 34, title: "Stardew Valley", genre: "Indie", year: 2016, rating: 4.9, developer: "ConcernedApe", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4g0g.jpg", description: "You've inherited your grandfather's old farm plot in Stardew Valley. Armed with hand-me-down tools and a few coins, you set out to begin your new life." },
+            { id: 35, title: "Outer Wilds", genre: "Indie", year: 2019, rating: 4.9, developer: "Mobius Digital", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2dmu.jpg", description: "A critically acclaimed mystery about a solar system trapped in an endless time loop." },
+            { id: 36, title: "Fallout: New Vegas", genre: "Action RPG", year: 2010, rating: 4.8, developer: "Obsidian Entertainment", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1x7g.jpg", description: "Welcome to Vegas. New Vegas. It's the kind of town where you dig your own grave prior to getting shot in the head." },
+            { id: 37, title: "The Elder Scrolls V: Skyrim", genre: "Action RPG", year: 2011, rating: 4.8, developer: "Bethesda Game Studios", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1tnw.jpg", description: "Winner of more than 200 Game of the Year Awards, Skyrim is the epic open world fantasy where you can be anyone and do anything." },
+            { id: 38, title: "Mass Effect Legendary Edition", genre: "Action RPG", year: 2021, rating: 4.8, developer: "BioWare", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co39y3.jpg", description: "Relive the legend of Commander Shepard in the critically acclaimed Mass Effect trilogy." },
+            { id: 39, title: "Super Smash Bros. Ultimate", genre: "Action RPG", year: 2018, rating: 4.8, developer: "Bandai Namco", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1xc3.jpg", description: "Gaming icons clash in the ultimate brawl you can play anytime, anywhere!" },
+            { id: 40, title: "League of Legends", genre: "Strategy", year: 2009, rating: 4.2, developer: "Riot Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co49wy.jpg", description: "A team-based strategy game where two teams of five powerful champions face off to destroy the enemy base." },
+            { id: 41, title: "Valorant", genre: "Shooter", year: 2020, rating: 4.3, developer: "Riot Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2u2z.jpg", description: "Blend your style and experience on a global, competitive 5v5 character-based tactical shooter stage." },
+            { id: 42, title: "Counter-Strike 2", genre: "Shooter", year: 2023, rating: 4.5, developer: "Valve", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co64z4.jpg", description: "For over two decades, Counter-Strike has offered an elite competitive experience shaped by millions of players worldwide." },
+            { id: 43, title: "Apex Legends", genre: "Shooter", year: 2019, rating: 4.4, developer: "Respawn Entertainment", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1x7h.jpg", description: "Conquer with character in Apex Legends, a free-to-play hero shooter battle royale game." },
+            { id: 44, title: "Destiny 2", genre: "Shooter", year: 2017, rating: 4.3, developer: "Bungie", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r09.jpg", description: "Dive into the world of Destiny 2 to explore the mysteries of the solar system and unleash elemental abilities." },
+            { id: 45, title: "Cyberpunk 2077: Phantom Liberty", genre: "Action RPG", year: 2023, rating: 4.8, developer: "CD Projekt Red", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6j9l.jpg", description: "Spy-thriller expansion for Cyberpunk 2077 set in a brand-new district of Night City." },
+            { id: 46, title: "Alan Wake 2", genre: "Survival Horror", year: 2023, rating: 4.6, developer: "Remedy Entertainment", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6d0s.jpg", description: "Saga Anderson investigates ritualistic murders in a small town while Alan Wake writes a dark story." },
+            { id: 47, title: "Silent Hill 2 Remake", genre: "Survival Horror", year: 2024, rating: 4.7, developer: "Bloober Team", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co6w1z.jpg", description: "Receive a letter from your deceased wife and journey to the fog-shrouded town of Silent Hill in this masterpiece remake." },
+            { id: 48, title: "Metroid Prime Remastered", genre: "Action RPG", year: 2023, rating: 4.8, developer: "Retro Studios", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co5z89.jpg", description: "Step into the boots of bounty hunter Samus Aran in her critically acclaimed first-person adventure." },
+            { id: 49, title: "Super Metroid", genre: "Indie", year: 1994, rating: 4.9, developer: "Nintendo", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2m7v.jpg", description: "The greatest action-exploration adventure of the 16-bit era returns." },
+            { id: 50, title: "Castlevania: Symphony of the Night", genre: "Action RPG", year: 1997, rating: 4.9, developer: "Konami", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2dwh.jpg", description: "Explore Dracula's castle in the legendary action RPG that defined the Metroidvania genre." },
+            { id: 51, title: "Devil May Cry 5", genre: "Action RPG", year: 2019, rating: 4.7, developer: "Capcom", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1vno.jpg", description: "The ultimate devil hunter is back in style with high-octane stylistic action." },
+            { id: 52, title: "NieR: Automata", genre: "Action RPG", year: 2017, rating: 4.8, developer: "PlatinumGames", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1x3d.jpg", description: "Androids 2B, 9S and A2 battle to reclaim a machine-driven dystopia overrun by powerful machine lifeforms." },
+            { id: 53, title: "Sekiro: Shadows Die Twice", genre: "Action RPG", year: 2019, rating: 4.8, developer: "FromSoftware", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1x7i.jpg", description: "Carve your own clever path to vengeance in an adventure of developer FromSoftware." },
+            { id: 54, title: "Ghost of Tsushima", genre: "Open World", year: 2020, rating: 4.8, developer: "Sucker Punch Productions", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2wdf.jpg", description: "Unsheathe your katana as Jin Sakai, a disgraced samurai fighting for the freedom of Tsushima Island." },
+            { id: 55, title: "Marvel's Spider-Man 2", genre: "Open World", year: 2023, rating: 4.7, developer: "Insomniac Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co64z6.jpg", description: "Spider-Men Peter Parker and Miles Morales face the ultimate test of strength inside and outside the mask." }
+        ];
+
+        // Application State
+        let state = {
+            games: JSON.parse(localStorage.getItem('vault_games')) || defaultGames,
+            library: JSON.parse(localStorage.getItem('vault_library')) || {}, // { gameId: { status, rating, playtime, platform, review, favorite } }
+            diary: JSON.parse(localStorage.getItem('vault_diary')) || [], // [ { id, gameId, date, rating, hours, text } ]
+            currentGenre: 'All',
+            currentSearch: '',
+            currentSort: 'popular',
+            activeGameId: null,
+            currentLibraryFilter: 'all'
+        };
+
+        function saveState() {
+            localStorage.setItem('vault_games', JSON.stringify(state.games));
+            localStorage.setItem('vault_library', JSON.stringify(state.library));
+            localStorage.setItem('vault_diary', JSON.stringify(state.diary));
+        }
+
+        // Initialization on Load
+        window.onload = function() {
+            renderGames();
+            updateLibraryCounts();
+            renderLibrary();
+            renderDiary();
+            renderStats();
+        };
+
+        // Tab Switching
+        function switchTab(tabId) {
+            ['home', 'library', 'diary', 'stats'].forEach(t => {
+                const viewEl = document.getElementById(`view-${t}`);
+                if (viewEl) viewEl.classList.add('hidden');
+                
+                const navBtn = document.getElementById(`nav-${t}`);
+                if (navBtn) {
+                    navBtn.className = "px-3 py-2 rounded-lg text-sm font-semibold transition text-slate-300 hover:text-white hover:bg-vault-700/30";
+                }
+                const mobBtn = document.getElementById(`mob-nav-${t}`);
+                if (mobBtn) {
+                    mobBtn.className = "whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300";
+                }
+            });
+
+            const activeView = document.getElementById(`view-${tabId}`);
+            if (activeView) activeView.classList.remove('hidden');
+
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.className = "px-3 py-2 rounded-lg text-sm font-semibold transition text-vault-accent bg-vault-700/50";
+            }
+            const activeMob = document.getElementById(`mob-nav-${tabId}`);
+            if (activeMob) {
+                activeMob.className = "whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-semibold text-vault-accent bg-vault-700/60";
+            }
+
+            if (tabId === 'library') renderLibrary();
+            if (tabId === 'diary') renderDiary();
+            if (tabId === 'stats') renderStats();
+        }
+
+        // Render Discover Games Grid
+        function renderGames() {
+            const grid = document.getElementById('games-grid');
+            if (!grid) return;
+
+            let filtered = state.games.filter(g => {
+                const matchesGenre = state.currentGenre === 'All' || g.genre === state.currentGenre;
+                const matchesSearch = g.title.toLowerCase().includes(state.currentSearch.toLowerCase()) || g.developer.toLowerCase().includes(state.currentSearch.toLowerCase());
+                return matchesGenre && matchesSearch;
+            });
+
+            // Sorting
+            if (state.currentSort === 'popular') filtered.sort((a,b) => b.rating - a.rating);
+            if (state.currentSort === 'rating') filtered.sort((a,b) => b.rating - a.rating);
+            if (state.currentSort === 'newest') filtered.sort((a,b) => b.year - a.year);
+            if (state.currentSort === 'title') filtered.sort((a,b) => a.title.localeCompare(b.title));
+
+            const countLabel = document.getElementById('game-count-label');
+            if (countLabel) countLabel.innerText = `Showing ${filtered.length} games`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500">No games found matching your search.</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(g => {
+                const libEntry = state.library[g.id];
+                const statusBadge = libEntry && libEntry.status !== 'None' ? `<span class="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold bg-vault-accent text-vault-900 uppercase shadow">${libEntry.status}</span>` : '';
+                const favBadge = libEntry && libEntry.favorite ? `<span class="absolute top-2 right-2 w-6 h-6 rounded-full bg-vault-900/80 text-vault-rose flex items-center justify-center text-xs shadow"><i class="fa-solid fa-heart"></i></span>` : '';
+
+                return `
+                    <div onclick="openGameDetail(${g.id})" class="game-card-hover bg-vault-800 rounded-xl overflow-hidden border border-vault-700/80 cursor-pointer flex flex-col group relative">
+                        <div class="relative h-48 sm:h-56 bg-vault-700 overflow-hidden">
+                            <img src="${g.cover}" alt="${g.title}" onerror="this.src='https://placehold.co/400x600/1e293b/64748b?text=Game'" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            ${statusBadge}
+                            ${favBadge}
+                            <div class="absolute inset-0 bg-gradient-to-t from-vault-900 via-transparent opacity-60"></div>
+                        </div>
+                        <div class="p-3.5 flex-1 flex flex-col justify-between space-y-2">
+                            <div>
+                                <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                                    <span class="text-vault-accent font-semibold">${g.genre}</span>
+                                    <span>${g.year}</span>
+                                </div>
+                                <h3 class="font-bold text-white text-sm line-clamp-1 group-hover:text-vault-accent transition">${g.title}</h3>
+                            </div>
+                            <div class="flex items-center justify-between pt-1 border-t border-vault-700/60 text-xs">
+                                <span class="text-slate-400 text-[11px] line-clamp-1 max-w-[100px]">${g.developer}</span>
+                                <div class="flex items-center space-x-1 text-vault-amber font-bold">
+                                    <i class="fa-solid fa-star text-[10px]"></i>
+                                    <span>${g.rating}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Filtering and Search handlers
+        function filterByGenre(genre) {
+            state.currentGenre = genre;
+            document.querySelectorAll('.genre-btn').forEach(btn => {
+                btn.className = "genre-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-vault-700 text-slate-300 hover:bg-vault-600 transition";
+            });
+            const activeBtn = document.getElementById(`genre-${genre}`);
+            if (activeBtn) activeBtn.className = "genre-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-vault-accent text-vault-900 transition";
+            renderGames();
+        }
+
+        function handleGlobalSearch(query) {
+            state.currentSearch = query;
+            renderGames();
+        }
+
+        function sortGames(sortVal) {
+            state.currentSort = sortVal;
+            renderGames();
+        }
+
+        // Game Detail Modal Logic
+        function openGameDetail(gameId) {
+            state.activeGameId = gameId;
+            const game = state.games.find(g => g.id == gameId);
+            if (!game) return;
+
+            document.getElementById('detail-header').style.backgroundImage = `url('${game.cover}')`;
+            document.getElementById('detail-cover').src = game.cover;
+            document.getElementById('detail-title').innerText = game.title;
+            document.getElementById('detail-genre').innerText = game.genre;
+            document.getElementById('detail-meta').innerText = `Released ${game.year} • ${game.developer}`;
+            document.getElementById('detail-rating').innerText = game.rating;
+            document.getElementById('detail-dev').innerText = game.developer;
+            document.getElementById('detail-description').innerText = game.description;
+
+            const libEntry = state.library[gameId] || { status: 'None', rating: 0, playtime: 0, platform: 'PC', review: '', favorite: false };
+            document.getElementById('manage-status').value = libEntry.status;
+            document.getElementById('manage-rating').value = libEntry.rating;
+            document.getElementById('manage-playtime').value = libEntry.playtime;
+            document.getElementById('manage-platform').value = libEntry.platform;
+            document.getElementById('manage-review').value = libEntry.review;
+
+            updateFavoriteButtonUI(libEntry.favorite);
+
+            document.getElementById('modal-game-detail').classList.remove('hidden');
+        }
+
+        function toggleFavoriteCurrentGame() {
+            if (!state.activeGameId) return;
+            if (!state.library[state.activeGameId]) {
+                state.library[state.activeGameId] = { status: 'Backlog', rating: 0, playtime: 0, platform: 'PC', review: '', favorite: false };
+            }
+            state.library[state.activeGameId].favorite = !state.library[state.activeGameId].favorite;
+            updateFavoriteButtonUI(state.library[state.activeGameId].favorite);
+            saveState();
+            showToast("Updated favorites status!");
+        }
+
+        function updateFavoriteButtonUI(isFav) {
+            const btn = document.getElementById('favorite-btn');
+            if (!btn) return;
+            if (isFav) {
+                btn.innerHTML = `<i class="fa-solid fa-heart text-vault-rose"></i><span class="text-vault-rose font-bold">Favorited</span>`;
+                btn.className = "px-3.5 py-2 rounded-xl bg-vault-rose/20 text-vault-rose text-sm font-semibold transition border border-vault-rose/40 flex items-center space-x-1.5";
+            } else {
+                btn.innerHTML = `<i class="fa-regular fa-heart text-vault-rose"></i><span>Favorite</span>`;
+                btn.className = "px-3.5 py-2 rounded-xl bg-vault-700 hover:bg-vault-600 text-slate-300 text-sm font-semibold transition border border-vault-600 flex items-center space-x-1.5";
+            }
+        }
+
+        function saveGameLibraryEntry() {
+            if (!state.activeGameId) return;
+            const status = document.getElementById('manage-status').value;
+            const rating = parseInt(document.getElementById('manage-rating').value);
+            const playtime = parseInt(document.getElementById('manage-playtime').value) || 0;
+            const platform = document.getElementById('manage-platform').value;
+            const review = document.getElementById('manage-review').value;
+
+            const existingFav = state.library[state.activeGameId] ? state.library[state.activeGameId].favorite : false;
+
+            state.library[state.activeGameId] = {
+                status,
+                rating,
+                playtime,
+                platform,
+                review,
+                favorite: existingFav
+            };
+
+            if (review.trim() !== '') {
+                state.diary.unshift({
+                    id: Date.now(),
+                    gameId: state.activeGameId,
+                    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    rating,
+                    hours: playtime,
+                    text: review
+                });
+            }
+
+            saveState();
+            closeModal('modal-game-detail');
+            showToast("Successfully saved to your library!");
+            renderGames();
+            updateLibraryCounts();
+            renderLibrary();
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // Library Shelf Functionality
+        function filterLibraryStatus(status) {
+            state.currentLibraryFilter = status;
+            document.querySelectorAll('.lib-filter-btn').forEach(btn => {
+                btn.className = "lib-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-vault-700 text-slate-300 hover:bg-vault-600 transition";
+            });
+            const filterBtn = document.getElementById(`lib-filter-${status}`);
+            if (filterBtn) filterBtn.className = "lib-filter-btn px-3.5 py-1.5 rounded-lg text-xs font-bold bg-vault-accent text-vault-900 transition";
+            renderLibrary();
+        }
+
+        function updateLibraryCounts() {
+            let counts = { all: 0, Playing: 0, Completed: 0, Backlog: 0, Wishlist: 0, Dropped: 0 };
+            Object.values(state.library).forEach(entry => {
+                if (entry.status && entry.status !== 'None') {
+                    counts.all++;
+                    if (counts[entry.status] !== undefined) counts[entry.status]++;
+                }
+            });
+
+            const badge = document.getElementById('library-count-badge');
+            if (badge) badge.innerText = counts.all;
+            
+            ['all', 'Playing', 'Completed', 'Backlog', 'Wishlist', 'Dropped'].forEach(k => {
+                const el = document.getElementById(`count-${k}`);
+                if (el) el.innerText = counts[k];
+            });
+        }
+
+        function renderLibrary() {
+            updateLibraryCounts();
+            const grid = document.getElementById('library-grid');
+            const emptyState = document.getElementById('library-empty');
+            if (!grid || !emptyState) return;
+
+            const libKeys = Object.keys(state.library).filter(gameId => {
+                const entry = state.library[gameId];
+                if (!entry || entry.status === 'None') return false;
+                if (state.currentLibraryFilter === 'all') return true;
+                return entry.status === state.currentLibraryFilter;
+            });
+
+            if (libKeys.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            grid.innerHTML = libKeys.map(gameId => {
+                const game = state.games.find(g => g.id == gameId);
+                const entry = state.library[gameId];
+                if (!game) return '';
+
+                const stars = '⭐'.repeat(entry.rating);
+
+                return `
+                    <div class="bg-vault-800 rounded-xl overflow-hidden border border-vault-700 flex flex-col justify-between shadow-lg">
+                        <div class="flex p-4 space-x-4 cursor-pointer" onclick="openGameDetail(${game.id})">
+                            <img src="${game.cover}" class="w-20 h-28 object-cover rounded-lg shadow border border-vault-600">
+                            <div class="flex-1 space-y-1">
+                                <div class="flex items-center justify-between">
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-vault-accent text-vault-900 uppercase">${entry.status}</span>
+                                    <span class="text-xs text-slate-400">${entry.platform}</span>
+                                </div>
+                                <h4 class="font-bold text-white text-base hover:text-vault-accent transition line-clamp-1">${game.title}</h4>
+                                <p class="text-xs text-vault-amber font-semibold">${stars || 'Unrated'} (${entry.rating}/5)</p>
+                                <p class="text-xs text-slate-400"><i class="fa-solid fa-clock mr-1"></i> ${entry.playtime} hrs played</p>
+                            </div>
+                        </div>
+                        ${entry.review ? `<div class="bg-vault-900/60 px-4 py-3 border-t border-vault-700/60 text-xs text-slate-300 italic">"${entry.review}"</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Journal & Diary Tab
+        function openLogModal() {
+            const select = document.getElementById('log-game-select');
+            if (select) {
+                select.innerHTML = state.games.map(g => `<option value="${g.id}">${g.title}</option>`).join('');
+            }
+            const logModal = document.getElementById('modal-log');
+            if (logModal) logModal.classList.remove('hidden');
+        }
+
+        function submitLogEntry() {
+            const gameId = parseInt(document.getElementById('log-game-select').value);
+            const rating = parseInt(document.getElementById('log-rating').value);
+            const hours = parseInt(document.getElementById('log-hours').value) || 0;
+            const text = document.getElementById('log-text').value;
+
+            state.diary.unshift({
+                id: Date.now(),
+                gameId,
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                rating,
+                hours,
+                text
+            });
+
+            if (!state.library[gameId]) {
+                state.library[gameId] = { status: 'Playing', rating, playtime: hours, platform: 'PC', review: text, favorite: false };
+            } else {
+                state.library[gameId].playtime = (state.library[gameId].playtime || 0) + hours;
+                state.library[gameId].rating = rating;
+                state.library[gameId].review = text;
+            }
+
+            saveState();
+            closeModal('modal-log');
+            showToast("Journal entry logged successfully!");
+            renderDiary();
+            updateLibraryCounts();
+        }
+
+        function renderDiary() {
+            const list = document.getElementById('diary-list');
+            const empty = document.getElementById('diary-empty');
+            if (!list || !empty) return;
+
+            if (state.diary.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+
+            list.innerHTML = state.diary.map(entry => {
+                const game = state.games.find(g => g.id == entry.gameId);
+                if (!game) return '';
+
+                const stars = '⭐'.repeat(entry.rating);
+
+                return `
+                    <div class="bg-vault-800 p-5 rounded-xl border border-vault-700 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <img src="${game.cover}" class="w-16 h-20 object-cover rounded-lg shadow border border-vault-600">
+                            <div class="space-y-1">
+                                <div class="flex items-center space-x-2">
+                                    <h4 class="font-bold text-white text-base">${game.title}</h4>
+                                    <span class="text-xs text-vault-amber">${stars}</span>
+                                </div>
+                                <p class="text-xs text-slate-400">Logged on ${entry.date} • <span class="text-vault-accent font-semibold">+${entry.hours} hrs</span></p>
+                                <p class="text-sm text-slate-300 pt-1">${entry.text || 'No review notes provided.'}</p>
+                            </div>
+                        </div>
+                        <button onclick="deleteDiaryEntry(${entry.id})" class="text-slate-500 hover:text-vault-rose transition text-sm">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteDiaryEntry(id) {
+            state.diary = state.diary.filter(d => d.id !== id);
+            saveState();
+            renderDiary();
+            showToast("Journal entry deleted.");
+        }
+
+        // Stats & Profile Tab
+        function renderStats() {
+            let totalTracked = 0;
+            let completedCount = 0;
+            let totalHours = 0;
+            let statusCounts = { Playing: 0, Completed: 0, Backlog: 0, Wishlist: 0, Dropped: 0 };
+            let platformCounts = {};
+            let favoriteGames = [];
+
+            Object.keys(state.library).forEach(gameId => {
+                const entry = state.library[gameId];
+                if (entry.status && entry.status !== 'None') {
+                    totalTracked++;
+                    totalHours += (entry.playtime || 0);
+                    if (entry.status === 'Completed') completedCount++;
+                    if (statusCounts[entry.status] !== undefined) statusCounts[entry.status]++;
+
+                    const plat = entry.platform || 'PC';
+                    platformCounts[plat] = (platformCounts[plat] || 0) + 1;
+
+                    if (entry.favorite) {
+                        const game = state.games.find(g => g.id == gameId);
+                        if (game) favoriteGames.push(game);
+                    }
+                }
+            });
+
+            const statTotal = document.getElementById('stat-total');
+            if (statTotal) statTotal.innerText = totalTracked;
+            
+            const statCompleted = document.getElementById('stat-completed');
+            if (statCompleted) statCompleted.innerText = completedCount;
+            
+            const statHours = document.getElementById('stat-hours');
+            if (statHours) statHours.innerText = totalHours + ' hrs';
+            
+            const statReviews = document.getElementById('stat-reviews');
+            if (statReviews) statReviews.innerText = state.diary.length;
+
+            // Render Favorite Showcase
+            const favGrid = document.getElementById('favorite-showcase-grid');
+            if (favGrid) {
+                if (favoriteGames.length === 0) {
+                    favGrid.innerHTML = `<div class="col-span-full text-xs text-slate-500 italic">No favorite games tagged yet. Click favorite on any game details modal.</div>`;
+                } else {
+                    favGrid.innerHTML = favoriteGames.map(g => `
+                        <div onclick="openGameDetail(${g.id})" class="cursor-pointer group">
+                            <img src="${g.cover}" class="w-full h-36 object-cover rounded-xl border border-vault-700 shadow group-hover:scale-105 transition">
+                            <h5 class="text-xs font-bold text-white mt-1 line-clamp-1">${g.title}</h5>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            // Status Distribution Bars
+            const statusContainer = document.getElementById('status-bars');
+            const totalStatus = totalTracked || 1;
+            if (statusContainer) {
+                statusContainer.innerHTML = Object.keys(statusCounts).map(status => {
+                    const count = statusCounts[status];
+                    const pct = Math.round((count / totalStatus) * 100);
+                    return `
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1">
+                                <span>${status}</span>
+                                <span class="text-vault-accent">${count} (${pct}%)</span>
+                            </div>
+                            <div class="w-full bg-vault-900 rounded-full h-2 overflow-hidden">
+                                <div class="bg-vault-accent h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Platform Bars
+            const platformContainer = document.getElementById('platform-bars');
+            const platforms = Object.keys(platformCounts);
+            if (platformContainer) {
+                if (platforms.length === 0) {
+                    platformContainer.innerHTML = `<p class="text-xs text-slate-500">No platform data logged yet.</p>`;
+                } else {
+                    platformContainer.innerHTML = platforms.map(plat => {
+                        const count = platformCounts[plat];
+                        const pct = Math.round((count / totalStatus) * 100);
+                        return `
+                            <div>
+                                <div class="flex justify-between text-xs font-semibold text-slate-300 mb-1">
+                                    <span>${plat}</span>
+                                    <span class="text-vault-amber">${count} games</span>
+                                </div>
+                                <div class="w-full bg-vault-900 rounded-full h-2 overflow-hidden">
+                                    <div class="bg-vault-amber h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+
+        // Custom Game Modal
+        function openAddCustomGameModal() {
+            const modal = document.getElementById('modal-custom-game');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function submitCustomGame() {
+            const title = document.getElementById('custom-title').value.trim();
+            const genre = document.getElementById('custom-genre').value.trim() || 'Indie';
+            const year = parseInt(document.getElementById('custom-year').value) || 2026;
+            const cover = document.getElementById('custom-cover').value.trim() || 'https://images.igdb.com/igdb/image/upload/t_cover_big/co4niy.jpg';
+            const description = document.getElementById('custom-desc').value.trim() || 'Custom added game entry.';
+
+            if (!title) {
+                showToast("Please enter a game title!");
+                return;
+            }
+
+            const newGame = {
+                id: Date.now(),
+                title,
+                genre,
+                year,
+                rating: 4.5,
+                developer: "Independent",
+                cover,
+                description
+            };
+
+            state.games.unshift(newGame);
+            saveState();
+            closeModal('modal-custom-game');
+            showToast("Successfully added custom game!");
+            renderGames();
+        }
+
+        // Data Backup Export & Import
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "playvault_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("Exported backup successfully!");
+        }
+
+        function importData(event) {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = function(e) {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        if (parsed && parsed.games && parsed.library) {
+                            state = parsed;
+                            saveState();
+                            renderGames();
+                            renderLibrary();
+                            renderDiary();
+                            renderStats();
+                            showToast("Backup imported successfully!");
+                        } else {
+                            showToast("Invalid backup file format.");
+                        }
+                    } catch(err) {
+                        showToast("Error parsing JSON backup.");
+                    }
+                }
+            }
+        }
+
+        // Toast notification helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            if (!toast || !toastMsg) return;
+            toastMsg.innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
