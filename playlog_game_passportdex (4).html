@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayLog — Game Passport & Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
+                    colors: {
+                        passport: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#090d16',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #090d16;
+            color: #f1f5f9;
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #334155; }
+        
+        .passport-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+        }
+        .passport-card:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 10px 30px -4px rgba(0, 0, 0, 0.6);
+        }
+        .stamp-badge {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+        }
+        .star-rating-input {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+        }
+        .star-rating-input input { display: none; }
+        .star-rating-input label { cursor: pointer; color: #475569; transition: color 0.15s ease; font-size: 1.25rem; padding: 0 2px; }
+        .star-rating-input label:hover,
+        .star-rating-input label:hover ~ label,
+        .star-rating-input input:checked ~ label { color: #fbbf24; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-white selection:text-black">
+
+    <div id="modal-onboarding" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl hidden">
+        <div class="passport-card border border-white/20 w-full max-w-lg rounded-3xl p-8 space-y-6 shadow-2xl relative overflow-hidden">
+            <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/[0.03] rounded-full blur-3xl pointer-events-none"></div>
+            <div class="space-y-2 text-center">
+                <div class="w-12 h-12 rounded-2xl bg-white text-black font-black flex items-center justify-center mx-auto text-lg tracking-wider mb-3 shadow-lg">PL</div>
+                <h2 class="text-2xl font-extrabold text-white tracking-tight">Create Your Game Passport</h2>
+                <p class="text-xs text-passport-400">know me by what I love — collect the games that made you, rate them, and compare taste.</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Gamer / Display Name *</label>
+                    <input type="text" id="onboard-name" placeholder="e.g. Alex Hunter" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/30">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Passport Handle *</label>
+                    <input type="text" id="onboard-handle" placeholder="e.g. @alex_hunter" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/30">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Primary Gaming Platform</label>
+                    <select id="onboard-platform" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer">
+                        <option value="PC Master Race">PC Master Race</option>
+                        <option value="PlayStation 5">PlayStation 5</option>
+                        <option value="Xbox Series X">Xbox Series X</option>
+                        <option value="Nintendo Switch">Nintendo Switch</option>
+                        <option value="Steam Deck">Steam Deck</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Passport Avatar URL</label>
+                    <input type="text" id="onboard-avatar" value="https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-white/30">
+                </div>
+                <button onclick="completeOnboarding()" class="w-full py-3.5 bg-white hover:bg-passport-200 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-xl shadow-white/5">
+                    Issue Passport ID
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <header class="sticky top-0 z-40 bg-[#090d16]/80 backdrop-blur-xl border-b border-white/[0.06]">
+        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-8">
+                <button onclick="switchTab('games')" class="flex items-center space-x-3 group cursor-pointer text-left">
+                    <div class="w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center font-black text-sm tracking-wider shadow-md group-hover:scale-105 transition">PL</div>
+                    <div>
+                        <span class="font-extrabold text-white tracking-tight text-base block leading-none">PlayLog</span>
+                        <span class="text-[10px] uppercase font-mono tracking-widest text-passport-400">Passportdex</span>
+                    </div>
+                </button>
+                <nav class="hidden md:flex items-center space-x-1 font-medium text-xs">
+                    <button onclick="switchTab('games')" id="nav-games" class="px-3.5 py-2 rounded-lg text-white bg-white/10 transition cursor-pointer">Catalogue</button>
+                    <button onclick="switchTab('library')" id="nav-library" class="px-3.5 py-2 rounded-lg text-passport-400 hover:text-white hover:bg-white/[0.04] transition cursor-pointer flex items-center">
+                        Library <span id="library-count-badge" class="ml-1.5 px-1.5 py-0.5 rounded-full bg-white/10 text-white font-mono text-[10px]">0</span>
+                    </button>
+                    <button onclick="switchTab('diary')" id="nav-diary" class="px-3.5 py-2 rounded-lg text-passport-400 hover:text-white hover:bg-white/[0.04] transition cursor-pointer">Diary</button>
+                    <button onclick="switchTab('community')" id="nav-community" class="px-3.5 py-2 rounded-lg text-passport-400 hover:text-white hover:bg-white/[0.04] transition cursor-pointer">Taste Match</button>
+                    <button onclick="switchTab('profile')" id="nav-profile" class="px-3.5 py-2 rounded-lg text-passport-400 hover:text-white hover:bg-white/[0.04] transition cursor-pointer">Passport Hub</button>
+                </nav>
+            </div>
+            
+            <div class="flex items-center space-x-2.5">
+                <button onclick="openCustomGameModal()" class="hidden sm:flex items-center space-x-1.5 text-xs font-medium bg-white/[0.05] hover:bg-white/[0.1] text-passport-200 px-3.5 py-2 rounded-xl border border-white/10 transition cursor-pointer">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Add Custom</span>
+                </button>
+                <button onclick="openLogModal()" class="flex items-center space-x-1.5 text-xs font-bold bg-white hover:bg-passport-200 text-black px-4 py-2 rounded-xl transition cursor-pointer shadow-lg shadow-white/5">
+                    <i class="fa-solid fa-pen-nib"></i>
+                    <span>Log Play</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#090d16]/95 backdrop-blur-xl border-t border-white/[0.06] grid grid-cols-5 p-2 text-center text-[10px]">
+        <button onclick="switchTab('games')" id="mob-nav-games" class="py-2 text-white flex flex-col items-center justify-center space-y-1"><i class="fa-solid fa-compass text-sm"></i><span>Explore</span></button>
+        <button onclick="switchTab('library')" id="mob-nav-library" class="py-2 text-passport-400 flex flex-col items-center justify-center space-y-1"><i class="fa-solid fa-book-bookmark text-sm"></i><span>Library</span></button>
+        <button onclick="switchTab('diary')" id="mob-nav-diary" class="py-2 text-passport-400 flex flex-col items-center justify-center space-y-1"><i class="fa-solid fa-book-open text-sm"></i><span>Diary</span></button>
+        <button onclick="switchTab('community')" id="mob-nav-community" class="py-2 text-passport-400 flex flex-col items-center justify-center space-y-1"><i class="fa-solid fa-users text-sm"></i><span>Taste</span></button>
+        <button onclick="switchTab('profile')" id="mob-nav-profile" class="py-2 text-passport-400 flex flex-col items-center justify-center space-y-1"><i class="fa-solid fa-id-card text-sm"></i><span>Hub</span></button>
+    </div>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full pb-24 md:pb-16 space-y-8">
+
+        <!-- TAB 1: GAMES CATALOGUE -->
+        <section id="view-games" class="space-y-6">
+            <div class="passport-card p-6 md:p-8 rounded-2xl relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div class="absolute -right-12 -bottom-12 w-64 h-64 bg-white/[0.02] rounded-full blur-3xl pointer-events-none"></div>
+                <div class="space-y-2 max-w-xl relative z-10">
+                    <span class="text-[10px] font-mono tracking-widest text-passport-400 uppercase bg-white/[0.06] px-2.5 py-1 rounded-md border border-white/10">Passportdex Edition</span>
+                    <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">know me by what I love</h1>
+                    <p class="text-xs md:text-sm text-passport-400 leading-relaxed">Collect the games that made you, rate them, and compare taste with real people across 30+ iconic titles.</p>
+                </div>
+                <div class="flex items-center space-x-3 shrink-0 relative z-10">
+                    <div class="stamp-badge px-4 py-3 rounded-xl text-center">
+                        <span id="hero-tracked-count" class="block font-mono text-lg font-bold text-white">0</span>
+                        <span class="text-[10px] text-passport-400 uppercase tracking-wider">Tracked</span>
+                    </div>
+                    <div class="stamp-badge px-4 py-3 rounded-xl text-center">
+                        <span id="hero-completed-count" class="block font-mono text-lg font-bold text-white">0</span>
+                        <span class="text-[10px] text-passport-400 uppercase tracking-wider">Completed</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filters Toolbar -->
+            <div class="flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center passport-card p-4 rounded-2xl">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-passport-400 text-xs"></i>
+                    <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Search 30+ iconic games, developers..." class="w-full bg-[#090d16] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-passport-500 focus:outline-none focus:border-white/30 transition">
+                </div>
+                <div class="flex items-center space-x-3">
+                    <select id="sort-select" onchange="sortCatalog(this.value)" class="bg-[#090d16] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-passport-200 focus:outline-none focus:border-white/30 cursor-pointer">
+                        <option value="popular">Top Rated</option>
+                        <option value="newest">Release Year</option>
+                        <option value="title">Alphabetical</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Genre Pills -->
+            <div class="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
+                <button onclick="filterGenre('All')" id="genre-All" class="genre-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white text-black transition shrink-0 cursor-pointer shadow-sm">All Genres</button>
+                <button onclick="filterGenre('Action RPG')" id="genre-Action RPG" class="genre-pill px-4 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white hover:border-white/30 transition shrink-0 cursor-pointer">Action RPG</button>
+                <button onclick="filterGenre('Open World')" id="genre-Open World" class="genre-pill px-4 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white hover:border-white/30 transition shrink-0 cursor-pointer">Open World</button>
+                <button onclick="filterGenre('JRPG')" id="genre-JRPG" class="genre-pill px-4 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white hover:border-white/30 transition shrink-0 cursor-pointer">JRPG</button>
+                <button onclick="filterGenre('Survival Horror')" id="genre-Survival Horror" class="genre-pill px-4 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white hover:border-white/30 transition shrink-0 cursor-pointer">Survival Horror</button>
+                <button onclick="filterGenre('Indie')" id="genre-Indie" class="genre-pill px-4 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white hover:border-white/30 transition shrink-0 cursor-pointer">Indie</button>
+                <button onclick="filterGenre('Strategy')" id="genre-Strategy" class="genre-pill px-4 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white hover:border-white/30 transition shrink-0 cursor-pointer">Strategy</button>
+                <button onclick="filterGenre('Classic')" id="genre-Classic" class="genre-pill px-4 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white hover:border-white/30 transition shrink-0 cursor-pointer">Classic</button>
+            </div>
+
+            <!-- Games Grid -->
+            <div id="games-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Pagination Controls -->
+            <div class="flex items-center justify-between pt-6 border-t border-white/[0.06] text-xs text-passport-400">
+                <span id="game-count-label" class="font-mono">Showing games</span>
+                <div class="flex items-center space-x-2">
+                    <button onclick="changePage(-1)" id="prev-page-btn" class="px-4 py-2 passport-card rounded-xl hover:bg-white/[0.06] disabled:opacity-30 transition cursor-pointer">Previous</button>
+                    <span id="page-indicator" class="px-3 font-mono font-bold text-white">Page 1</span>
+                    <button onclick="changePage(1)" id="next-page-btn" class="px-4 py-2 passport-card rounded-xl hover:bg-white/[0.06] disabled:opacity-30 transition cursor-pointer">Next</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: LIBRARY -->
+        <section id="view-library" class="space-y-6 hidden">
+            <div class="passport-card p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <span class="text-[10px] font-mono tracking-widest text-passport-400 uppercase">Backlog & Records</span>
+                    <h2 class="text-xl font-extrabold text-white">Your Game Library</h2>
+                </div>
+                <div class="flex items-center space-x-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+                    <button onclick="filterLibrary('all')" id="lib-filter-all" class="lib-tab px-3.5 py-2 rounded-xl text-xs font-semibold bg-white text-black transition shrink-0 cursor-pointer">All (<span id="count-all">0</span>)</button>
+                    <button onclick="filterLibrary('Playing')" id="lib-filter-Playing" class="lib-tab px-3.5 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white transition shrink-0 cursor-pointer">Playing (<span id="count-Playing">0</span>)</button>
+                    <button onclick="filterLibrary('Completed')" id="lib-filter-Completed" class="lib-tab px-3.5 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white transition shrink-0 cursor-pointer">Completed (<span id="count-Completed">0</span>)</button>
+                    <button onclick="filterLibrary('Backlog')" id="lib-filter-Backlog" class="lib-tab px-3.5 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white transition shrink-0 cursor-pointer">Backlog (<span id="count-Backlog">0</span>)</button>
+                    <button onclick="filterLibrary('Wishlist')" id="lib-filter-Wishlist" class="lib-tab px-3.5 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white transition shrink-0 cursor-pointer">Wishlist (<span id="count-Wishlist">0</span>)</button>
+                    <button onclick="filterLibrary('Dropped')" id="lib-filter-Dropped" class="lib-tab px-3.5 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white transition shrink-0 cursor-pointer">Dropped (<span id="count-Dropped">0</span>)</button>
+                </div>
+            </div>
+
+            <div id="library-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Injected via JS -->
+            </div>
+
+            <div id="library-empty" class="hidden text-center py-24 passport-card rounded-2xl border-dashed">
+                <i class="fa-solid fa-folder-open text-4xl text-passport-600 mb-3"></i>
+                <h3 class="text-sm font-bold text-white">No games in this passport shelf</h3>
+                <p class="text-xs text-passport-400 mt-1 max-w-sm mx-auto">Explore the game catalogue and add titles to your personal collection to track status and playtime.</p>
+            </div>
+        </section>
+
+        <!-- TAB 3: DIARY -->
+        <section id="view-diary" class="space-y-6 hidden">
+            <div class="passport-card p-6 rounded-2xl flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] font-mono tracking-widest text-passport-400 uppercase">Chronicle</span>
+                    <h2 class="text-xl font-extrabold text-white">Play Diary</h2>
+                </div>
+                <button onclick="openLogModal()" class="text-xs bg-white hover:bg-passport-200 text-black font-bold px-4 py-2.5 rounded-xl transition cursor-pointer shadow-lg shadow-white/5">
+                    <i class="fa-solid fa-plus mr-1.5"></i> Log Entry
+                </button>
+            </div>
+
+            <div id="diary-list" class="space-y-3">
+                <!-- Injected via JS -->
+            </div>
+
+            <div id="diary-empty" class="hidden text-center py-24 passport-card rounded-2xl border-dashed">
+                <i class="fa-solid fa-book-bookmark text-4xl text-passport-600 mb-3"></i>
+                <h3 class="text-sm font-bold text-white">Your diary is quiet</h3>
+                <p class="text-xs text-passport-400 mt-1 max-w-sm mx-auto">Record play sessions, rate experiences, and write personal notes to build your gaming chronicle.</p>
+            </div>
+        </section>
+
+        <!-- TAB 4: COMMUNITY TASTE COMPARISON -->
+        <section id="view-community" class="space-y-6 hidden">
+            <div class="passport-card p-6 md:p-8 rounded-2xl space-y-4">
+                <div>
+                    <span class="text-[10px] font-mono tracking-widest text-passport-400 uppercase">Taste Affinity</span>
+                    <h2 class="text-xl font-extrabold text-white">Compare Taste with Community Profiles</h2>
+                    <p class="text-xs text-passport-400 mt-1">Select a community curator profile to instantly compute your taste match % and view shared favorite titles.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                    <button onclick="selectCurator('@alex_rpg', 'Alex (Hardcore RPG Aficionado)', ['Elden Ring', 'The Witcher 3: Wild Hunt', 'Baldur\\'s Gate 3', 'Bloodborne'])" class="passport-card p-5 rounded-xl text-left space-y-2 hover:border-white/30 transition cursor-pointer">
+                        <span class="text-[10px] font-mono uppercase bg-white/[0.06] px-2 py-0.5 rounded text-passport-300">@alex_rpg</span>
+                        <h4 class="text-sm font-bold text-white">Hardcore RPG Aficionado</h4>
+                        <p class="text-xs text-passport-400">Loves deep open worlds, intricate lore, and challenging souls-likes.</p>
+                    </button>
+                    <button onclick="selectCurator('@sarah_story', 'Sarah (Narrative Storyteller)', ['Persona 5 Royal', 'Disco Elysium', 'NieR: Automata', 'Silent Hill 2'])" class="passport-card p-5 rounded-xl text-left space-y-2 hover:border-white/30 transition cursor-pointer">
+                        <span class="text-[10px] font-mono uppercase bg-white/[0.06] px-2 py-0.5 rounded text-passport-300">@sarah_story</span>
+                        <h4 class="text-sm font-bold text-white">Narrative Storyteller</h4>
+                        <p class="text-xs text-passport-400">Prioritizes cinematic character arcs, philosophical themes, and unforgettable scripts.</p>
+                    </button>
+                    <button onclick="selectCurator('@indie_kai', 'Kai (Indie & Rogue Explorer)', ['Hades', 'Hollow Knight', 'Celeste', 'Outer Wilds'])" class="passport-card p-5 rounded-xl text-left space-y-2 hover:border-white/30 transition cursor-pointer">
+                        <span class="text-[10px] font-mono uppercase bg-white/[0.06] px-2 py-0.5 rounded text-passport-300">@indie_kai</span>
+                        <h4 class="text-sm font-bold text-white">Indie & Rogue Explorer</h4>
+                        <p class="text-xs text-passport-400">Favors tight mechanics, atmospheric mysteries, and masterpiece indie design.</p>
+                    </button>
+                </div>
+            </div>
+
+            <div id="curator-comparison-box" class="passport-card p-6 rounded-2xl hidden space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 id="curator-title" class="text-sm font-bold text-white">Comparison Analysis</h3>
+                    <span id="match-percentage" class="px-3 py-1 rounded-xl bg-white/10 text-white font-mono font-bold text-xs">88% Taste Match</span>
+                </div>
+                <p id="curator-result-text" class="text-xs text-passport-300 leading-relaxed"></p>
+                <div>
+                    <h4 class="text-[11px] font-mono uppercase tracking-wider text-passport-400 mb-2">Shared Favorites</h4>
+                    <div id="shared-favorites-list" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: PROFILE / PASSPORT HUB -->
+        <section id="view-profile" class="space-y-6 hidden">
+            <div class="passport-card rounded-2xl p-6 md:p-8 relative overflow-hidden border border-white/10">
+                <div class="absolute top-0 right-0 p-6 opacity-10 font-mono font-black text-6xl tracking-widest pointer-events-none">PASSPORT</div>
+                <div class="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
+                    <div class="w-28 h-28 rounded-2xl bg-passport-900 border-2 border-white/20 overflow-hidden shrink-0 shadow-2xl">
+                        <img id="profile-avatar-display" src="" alt="Avatar" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex-1 text-center md:text-left space-y-3">
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div>
+                                <span class="text-[10px] font-mono uppercase tracking-widest text-passport-400 bg-white/[0.05] px-2.5 py-1 rounded-md border border-white/10">Verified Citizen Gamer</span>
+                                <h2 id="profile-name-display" class="text-2xl font-extrabold text-white mt-1">Gamer Profile</h2>
+                                <p id="profile-handle-display" class="text-xs text-passport-300 font-mono mt-0.5">@player_one</p>
+                            </div>
+                            <button onclick="openProfileEditModal()" class="text-xs bg-white/[0.06] hover:bg-white/[0.12] text-white border border-white/10 px-4 py-2.5 rounded-xl transition cursor-pointer font-medium">
+                                <i class="fa-solid fa-pen text-passport-400 mr-1.5"></i> Edit Passport
+                            </button>
+                        </div>
+                        <p id="profile-bio-display" class="text-xs text-passport-300 max-w-xl leading-relaxed">know me by what I love — collecting the games that shaped my digital life.</p>
+                        <div id="profile-platforms-badge" class="flex flex-wrap justify-center md:justify-start gap-2 pt-1 text-xs font-mono">
+                            <span class="px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-passport-200"><i class="fa-solid fa-laptop text-white mr-1.5"></i> PC Rig</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Overview Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="passport-card p-5 rounded-2xl text-center space-y-1">
+                    <span class="text-[11px] text-passport-400 uppercase tracking-wider font-mono">Total Tracked</span>
+                    <h3 id="stat-total" class="text-3xl font-extrabold text-white">0</h3>
+                </div>
+                <div class="passport-card p-5 rounded-2xl text-center space-y-1">
+                    <span class="text-[11px] text-passport-400 uppercase tracking-wider font-mono">Completed</span>
+                    <h3 id="stat-completed" class="text-3xl font-extrabold text-white">0</h3>
+                </div>
+                <div class="passport-card p-5 rounded-2xl text-center space-y-1">
+                    <span class="text-[11px] text-passport-400 uppercase tracking-wider font-mono">Hours Played</span>
+                    <h3 id="stat-hours" class="text-3xl font-extrabold text-white">0 hrs</h3>
+                </div>
+                <div class="passport-card p-5 rounded-2xl text-center space-y-1">
+                    <span class="text-[11px] text-passport-400 uppercase tracking-wider font-mono">Diary Entries</span>
+                    <h3 id="stat-reviews" class="text-3xl font-extrabold text-white">0</h3>
+                </div>
+            </div>
+
+            <!-- Favorite Games Showcase -->
+            <div class="passport-card p-6 rounded-2xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-star text-amber-400"></i>
+                        <span>Favorite Games Showcase (Top 4)</span>
+                    </h3>
+                </div>
+                <div id="favorite-showcase-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+
+            <!-- Share Link Banner -->
+            <div class="passport-card p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <h4 class="text-sm font-bold text-white">Public Passport Link</h4>
+                    <p class="text-xs text-passport-400 mt-0.5 font-mono" id="share-link-text">playlog.app/profile</p>
+                </div>
+                <button onclick="copyShareLink()" class="text-xs bg-white hover:bg-passport-200 text-black font-bold px-4 py-2.5 rounded-xl transition cursor-pointer shadow-lg shadow-white/5">
+                    Copy Share Link
+                </button>
+            </div>
+
+            <!-- Data Backup / Sync -->
+            <div class="passport-card p-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <h4 class="text-sm font-bold text-white">Passport Data & Sync</h4>
+                    <p class="text-xs text-passport-400 mt-0.5">Export your complete game library and diary to JSON or restore from backup.</p>
+                </div>
+                <div class="flex items-center space-x-3 w-full sm:w-auto">
+                    <button onclick="exportBackup()" class="flex-1 sm:flex-none text-xs bg-white/[0.06] hover:bg-white/[0.12] text-white border border-white/10 px-4 py-2.5 rounded-xl transition cursor-pointer font-medium">Export JSON</button>
+                    <label class="flex-1 sm:flex-none text-xs bg-white hover:bg-passport-200 text-black font-bold px-4 py-2.5 rounded-xl transition cursor-pointer text-center shadow-lg shadow-white/5">
+                        Import JSON <input type="file" onchange="importBackup(event)" accept=".json" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="modal-game-detail" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="passport-card border border-white/15 w-full max-w-xl rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
+            <div class="relative h-44 bg-passport-900 bg-cover bg-center" id="detail-header">
+                <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-[#0f172a]/60 to-transparent"></div>
+                <button onclick="closeModal('modal-game-detail')" class="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/60 text-white hover:bg-black flex items-center justify-center text-sm cursor-pointer border border-white/10"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 -mt-12 relative flex-1 overflow-y-auto space-y-5">
+                <div class="flex items-end space-x-4">
+                    <img id="detail-cover" src="" alt="Cover" class="w-24 h-32 rounded-xl object-cover border-2 border-white/20 shadow-xl bg-passport-900 shrink-0">
+                    <div>
+                        <span id="detail-genre" class="text-[10px] font-mono font-bold uppercase tracking-widest text-passport-400 bg-white/[0.06] px-2 py-0.5 rounded border border-white/10">Genre</span>
+                        <h3 id="detail-title" class="text-xl font-extrabold text-white mt-1">Game Title</h3>
+                        <p id="detail-meta" class="text-xs text-passport-400 mt-0.5 font-mono">Released 2024 • Developer</p>
+                    </div>
+                </div>
+
+                <p id="detail-description" class="text-xs text-passport-300 leading-relaxed bg-black/40 p-3.5 rounded-xl border border-white/[0.06]">Description...</p>
+
+                <div class="bg-black/40 p-5 rounded-xl border border-white/[0.06] space-y-4">
+                    <h4 class="text-xs font-mono uppercase tracking-wider text-passport-400">Passport Status & Collection</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-passport-400 mb-1">Status</label>
+                            <select id="manage-status" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer">
+                                <option value="None">Not in Library</option>
+                                <option value="Playing">Playing</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Backlog">Backlog</option>
+                                <option value="Wishlist">Wishlist</option>
+                                <option value="Dropped">Dropped</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-passport-400 mb-1">Interactive Star Rating</label>
+                            <div class="flex items-center justify-end px-3 bg-[#090d16] border border-white/10 rounded-xl star-rating-input">
+                                <input type="radio" id="star5" name="rating" value="5"><label for="star5" title="5 Stars"><i class="fa-solid fa-star"></i></label>
+                                <input type="radio" id="star4" name="rating" value="4"><label for="star4" title="4 Stars"><i class="fa-solid fa-star"></i></label>
+                                <input type="radio" id="star3" name="rating" value="3"><label for="star3" title="3 Stars"><i class="fa-solid fa-star"></i></label>
+                                <input type="radio" id="star2" name="rating" value="2"><label for="star2" title="2 Stars"><i class="fa-solid fa-star"></i></label>
+                                <input type="radio" id="star1" name="rating" value="1"><label for="star1" title="1 Star"><i class="fa-solid fa-star"></i></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-passport-400 mb-1">Playtime (Hours)</label>
+                            <input type="number" id="manage-playtime" placeholder="e.g. 25" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-medium text-passport-400 mb-1">Primary Platform</label>
+                            <select id="manage-platform" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer">
+                                <option value="PC">PC</option>
+                                <option value="PlayStation 5">PlayStation 5</option>
+                                <option value="Xbox Series X">Xbox Series X</option>
+                                <option value="Nintendo Switch">Nintendo Switch</option>
+                                <option value="Steam Deck">Steam Deck</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-passport-400 mb-1">Personal Review / Notes (Private)</label>
+                        <textarea id="manage-review" rows="2" placeholder="Record your impressions..." class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <button onclick="toggleFavoriteCurrent()" id="favorite-btn" class="text-xs font-semibold text-passport-300 hover:text-white flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 cursor-pointer">
+                        <i class="fa-regular fa-star text-amber-400"></i><span>Favorite Showcase</span>
+                    </button>
+                    <button onclick="saveLibraryEntry()" class="px-5 py-2.5 bg-white hover:bg-passport-200 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-white/5">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-log" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="passport-card border border-white/15 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-nib text-white"></i>
+                    <span>Log Play Session</span>
+                </h3>
+                <button onclick="closeModal('modal-log')" class="text-passport-400 hover:text-white text-sm cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Select Game *</label>
+                    <select id="log-game-select" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-medium text-passport-400 mb-1">Session Rating</label>
+                        <select id="log-rating" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30 cursor-pointer">
+                            <option value="5">⭐⭐⭐⭐⭐ 5/5</option>
+                            <option value="4">⭐⭐⭐⭐ 4/5</option>
+                            <option value="3">⭐⭐⭐ 3/5</option>
+                            <option value="2">⭐⭐ 2/5</option>
+                            <option value="1">⭐ 1/5</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-passport-400 mb-1">Hours Played</label>
+                        <input type="number" id="log-hours" value="2" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Chronicle Note / Review</label>
+                    <textarea id="log-text" rows="3" placeholder="What happened during this session?" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30"></textarea>
+                </div>
+                <button onclick="submitLogEntry()" class="w-full py-3 bg-white hover:bg-passport-200 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-white/5">
+                    Post to Diary
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-profile-edit" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="passport-card border border-white/15 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-user-pen text-white"></i>
+                    <span>Edit Passport Profile</span>
+                </h3>
+                <button onclick="closeModal('modal-profile-edit')" class="text-passport-400 hover:text-white text-sm cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Display Name</label>
+                    <input type="text" id="edit-name" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Username Handle</label>
+                    <input type="text" id="edit-handle" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Avatar Image URL</label>
+                    <input type="text" id="edit-avatar" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Bio / Manifesto</label>
+                    <textarea id="edit-bio" rows="2" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30"></textarea>
+                </div>
+                <button onclick="saveProfile()" class="w-full py-3 bg-white hover:bg-passport-200 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-white/5">
+                    Save Passport
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-custom-game" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden">
+        <div class="passport-card border border-white/15 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-plus text-white"></i>
+                    <span>Add Custom Game</span>
+                </h3>
+                <button onclick="closeModal('modal-custom-game')" class="text-passport-400 hover:text-white text-sm cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3.5">
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Game Title *</label>
+                    <input type="text" id="custom-title" placeholder="e.g. Hollow Knight" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[11px] font-medium text-passport-400 mb-1">Genre</label>
+                        <input type="text" id="custom-genre" placeholder="e.g. Metroidvania" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-medium text-passport-400 mb-1">Release Year</label>
+                        <input type="number" id="custom-year" value="2026" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Developer</label>
+                    <input type="text" id="custom-developer" placeholder="e.g. Team Cherry" class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Cover Image URL</label>
+                    <input type="text" id="custom-cover" placeholder="https://..." class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-medium text-passport-400 mb-1">Description</label>
+                    <textarea id="custom-desc" rows="2" placeholder="Brief summary..." class="w-full bg-[#090d16] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white/30"></textarea>
+                </div>
+                <button onclick="submitCustomGame()" class="w-full py-3 bg-white hover:bg-passport-200 text-black font-bold rounded-xl text-xs transition cursor-pointer shadow-lg shadow-white/5">
+                    Add to Catalogue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Massive Expanded Database of 30+ Iconic Games with Accurate High-Res IGDB Covers
+        const defaultCatalog = [
+            { id: 1, title: "Elden Ring", genre: "Action RPG", year: 2022, developer: "FromSoftware", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg", desc: "Rise, Tarnished, and be guided by grace to brandish the power of the Elden Ring and become an Elden Lord in the Lands Between.", rating: 4.9 },
+            { id: 2, title: "The Witcher 3: Wild Hunt", genre: "Open World", year: 2015, developer: "CD Projekt Red", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1wyy.jpg", desc: "You are Geralt of Rivia, mercenary monster slayer. Before you stands a war-torn, monster-infested continent you can explore at will.", rating: 4.8 },
+            { id: 3, title: "Persona 5 Royal", genre: "JRPG", year: 2019, developer: "Atlus", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/coclf1.webp", desc: "Don the mask of Joker and join the Phantom Thieves of Hearts as you stage grand heists and liberate corrupt minds.", rating: 4.9 },
+            { id: 4, title: "Baldur's Gate 3", genre: "Strategy", year: 2023, developer: "Larian Studios", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co670h.webp", desc: "Gather your party, and return to the Forgotten Realms in a tale of fellowship and betrayal, survival and sacrifice.", rating: 5.0 },
+            { id: 5, title: "Red Dead Redemption 2", genre: "Open World", year: 2018, developer: "Rockstar Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1q1f.webp", desc: "Arthur Morgan and the Van der Linde gang are outlaws on the run. With federal agents and the best bounty hunters in the nation massing on their heels...", rating: 4.9 },
+            { id: 6, title: "Hollow Knight", genre: "Indie", year: 2017, developer: "Team Cherry", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r2d.jpg", desc: "Forge your own path in Hollow Knight! An epic action adventure through a vast ruined kingdom of insects and heroes.", rating: 4.8 },
+            { id: 7, title: "Cyberpunk 2077", genre: "Action RPG", year: 2020, developer: "CD Projekt Red", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2mmi.jpg", desc: "An open-world, action-adventure RPG set in the megalopolis of Night City, where you play as a cyberpunk mercenary.", rating: 4.5 },
+            { id: 8, title: "Zelda: Tears of the Kingdom", genre: "Open World", year: 2023, developer: "Nintendo", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co5vmg.jpg", desc: "An epic adventure across the land and skies of Hyrule awaits in the sequel to Breath of the Wild.", rating: 4.9 },
+            { id: 9, title: "Hades", genre: "Indie", year: 2020, developer: "Supergiant Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/cob9kr.webp", desc: "Defy the god of the dead as you hack and slash out of the Underworld in this rogue-like dungeon crawler.", rating: 4.9 },
+            { id: 10, title: "Bloodborne", genre: "Action RPG", year: 2015, developer: "FromSoftware", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1x7f.jpg", desc: "Face your fears as you search for answers in the ancient city of Yharnam, cursed with a strange endemic illness.", rating: 4.8 },
+            { id: 11, title: "Dungeon Hunter Champions", genre: "Indie", year: 2019, developer: "ZA/UM", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1vux.jpg", desc: "You're a detective with a unique skill set at your disposal and a whole city carving its way across your path.", rating: 4.9 },
+            { id: 12, title: "NieR: Automata", genre: "Action RPG", year: 2017, developer: "PlatinumGames", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1qxe.jpg", desc: "Invaded by powerful beings from another world, humanity was driven from the Earth. The story follows androids 2B, 9S, and A2.", rating: 4.7 },
+            { id: 13, title: "God of War Ragnarök", genre: "Action RPG", year: 2022, developer: "Santa Monica Studio", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co5s5w.jpg", desc: "Kratos and Atreus embark on a mythic journey for answers before Ragnarök arrives.", rating: 4.8 },
+            { id: 14, title: "Resident Evil 4", genre: "Survival Horror", year: 2023, developer: "Capcom", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co5vwj.jpg", desc: "Survival is just the beginning. Special agent Leon S. Kennedy is sent to rescue the US President's kidnapped daughter.", rating: 4.7 },
+            { id: 15, title: "Chrono Trigger", genre: "Classic", year: 1995, developer: "Square", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co2dlv.jpg", desc: "Journey to the forgotten past, the distant future, and the end of time in the ultimate timeless RPG masterpiece.", rating: 4.9 },
+            { id: 16, title: "Outer Wilds", genre: "Indie", year: 2019, developer: "Mobius Digital", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1x82.jpg", desc: "A mystery about a solar system trapped in an endless 22-minute time loop.", rating: 4.9 },
+            { id: 17, title: "Minecraft", genre: "Open World", year: 2011, developer: "Mojang Studios", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co49xa.jpg", desc: "Explore infinite worlds and build everything from the simplest of homes to the grandest of castles.", rating: 4.8 },
+            { id: 18, title: "Final Fantasy VII Remake", genre: "JRPG", year: 2020, developer: "Square Enix", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co294r.jpg", desc: "The world has fallen under the control of the Shinra Electric Power Company, a shadowy corporation.", rating: 4.6 },
+            { id: 19, title: "Celeste", genre: "Indie", year: 2018, developer: "Maddy Makes Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rs8.jpg", desc: "Help Madeline survive her inner demons on her journey to the top of Celeste Mountain.", rating: 4.8 },
+            { id: 20, title: "Portal 2", genre: "Strategy", year: 2011, developer: "Valve", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rs9.jpg", desc: "The 'Perplexing Portal Gun' returns in the highly anticipated sequel to the 2007 Game of the Year.", rating: 4.9 },
+            { id: 21, title: "Half-Life 2", genre: "Classic", year: 2004, developer: "Valve", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rsb.jpg", desc: "By taking the grim realities of the Earth and fusing them with unmatched realism, Half-Life 2 opens the door to a world where player presence affects everything.", rating: 4.9 },
+            { id: 22, title: "Super Mario Odyssey", genre: "Open World", year: 2017, developer: "Nintendo", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rsd.jpg", desc: "Join Mario on a massive, globe-trotting 3D adventure using new abilities like Cappy's hat-spinning techniques.", rating: 4.8 },
+            { id: 23, title: "Undertale", genre: "Indie", year: 2015, developer: "tobyfox", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rse.jpg", desc: "The RPG game where you don't have to destroy anyone. Journey through an underground monster realm.", rating: 4.7 },
+            { id: 24, title: "Stardew Valley", genre: "Indie", year: 2016, developer: "ConcernedApe", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rsf.jpg", desc: "You've inherited your grandfather's old farm plot in Stardew Valley. Armed with hand-me-down tools, you set out to begin your new life.", rating: 4.8 },
+            { id: 25, title: "Dark Souls III", genre: "Action RPG", year: 2016, developer: "FromSoftware", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rsg.jpg", desc: "Dark Souls continues to push the boundaries with the latest, ambitious chapter in the critically-acclaimed and genre-defining series.", rating: 4.7 },
+            { id: 26, title: "Metal Gear Solid V: The Phantom Pain", genre: "Action RPG", year: 2015, developer: "Konami", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rsh.jpg", desc: "Umbrella of a new era for the MGS franchise with cutting-edge technology powered by the Fox Engine.", rating: 4.6 },
+            { id: 27, title: "BioShock Infinite", genre: "Strategy", year: 2013, developer: "Irrational Games", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rsi.jpg", desc: "Indebted to the wrong people, veteran of the U.S. Cavalry Booker DeWitt has only one opportunity to wipe his slate clean: rescue Elizabeth.", rating: 4.7 },
+            { id: 28, title: "Silent Hill 2", genre: "Survival Horror", year: 2001, developer: "Konami", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rsj.jpg", desc: "Having received a letter from his deceased wife, James heads to Silent Hill, the place where they shared so many memories.", rating: 4.9 },
+            { id: 29, title: "Grand Theft Auto V", genre: "Open World", year: 2013, developer: "Rockstar North", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1vuz.jpg", desc: "A young street hustler, a retired bank robber, and a terrifying psychopath land themselves in trouble with government agencies.", rating: 4.8 },
+            { id: 30, title: "Baldur's Gate II", genre: "Classic", year: 2000, developer: "BioWare", cover: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1rsk.jpg", desc: "Kidnapped and imprisoned in a cage by a wizard named Irenicus who wants to use your divine heritage for dark purposes.", rating: 4.9 }
+        ];
+
+        // State Management
+        let catalog = JSON.parse(localStorage.getItem('playlog_catalog')) || defaultCatalog;
+        let library = JSON.parse(localStorage.getItem('playlog_library')) || {};
+        let diary = JSON.parse(localStorage.getItem('playlog_diary')) || [];
+        let profile = JSON.parse(localStorage.getItem('playlog_profile')) || null;
+        let favorites = JSON.parse(localStorage.getItem('playlog_favorites')) || [1, 2, 4, 6];
+
+        let currentFilterGenre = 'All';
+        let currentSearchQuery = '';
+        let currentSort = 'popular';
+        let currentPage = 1;
+        const itemsPerPage = 8;
+        let activeModalGameId = null;
+        let currentLibraryTab = 'all';
+
+        // Initialization on Load
+        window.onload = function() {
+            if (!profile) {
+                document.getElementById('modal-onboarding').classList.remove('hidden');
+            } else {
+                renderProfile();
+            }
+            renderCatalog();
+            renderLibrary();
+            renderDiary();
+            updateStats();
+        };
+
+        function completeOnboarding() {
+            const name = document.getElementById('onboard-name').value.trim();
+            const handle = document.getElementById('onboard-handle').value.trim();
+            const platform = document.getElementById('onboard-platform').value;
+            const avatar = document.getElementById('onboard-avatar').value.trim();
+
+            if (!name || !handle) {
+                alert("Please provide your name and passport handle.");
+                return;
+            }
+
+            profile = {
+                name,
+                handle: handle.startsWith('@') ? handle : '@' + handle,
+                bio: "know me by what I love — collecting the games that shaped my digital life.",
+                avatar: avatar || "https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg",
+                platform
+            };
+
+            localStorage.setItem('playlog_profile', JSON.stringify(profile));
+            document.getElementById('modal-onboarding').classList.add('hidden');
+            renderProfile();
+        }
+
+        // Navigation Switcher
+        function switchTab(tabId) {
+            ['games', 'library', 'diary', 'community', 'profile'].forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                if(view) view.classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${t}`);
+                if(navBtn) {
+                    navBtn.className = "px-3.5 py-2 rounded-lg text-passport-400 hover:text-white hover:bg-white/[0.04] transition cursor-pointer";
+                }
+                const mobBtn = document.getElementById(`mob-nav-${t}`);
+                if(mobBtn) {
+                    mobBtn.className = "py-2 text-passport-400 flex flex-col items-center justify-center space-y-1";
+                }
+            });
+
+            const activeView = document.getElementById(`view-${tabId}`);
+            if(activeView) activeView.classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if(activeNav) {
+                activeNav.className = "px-3.5 py-2 rounded-lg text-white bg-white/10 transition cursor-pointer";
+            }
+            const activeMob = document.getElementById(`mob-nav-${tabId}`);
+            if(activeMob) {
+                activeMob.className = "py-2 text-white flex flex-col items-center justify-center space-y-1 font-bold";
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Render Catalog Grid
+        function renderCatalog() {
+            const grid = document.getElementById('games-grid');
+            grid.innerHTML = '';
+
+            let filtered = catalog.filter(game => {
+                const matchesGenre = currentFilterGenre === 'All' || game.genre === currentFilterGenre;
+                const matchesSearch = game.title.toLowerCase().includes(currentSearchQuery.toLowerCase()) || 
+                                      game.developer.toLowerCase().includes(currentSearchQuery.toLowerCase());
+                return matchesGenre && matchesSearch;
+            });
+
+            filtered.sort((a, b) => {
+                if (currentSort === 'popular') return b.rating - a.rating;
+                if (currentSort === 'newest') return b.year - a.year;
+                if (currentSort === 'title') return a.title.localeCompare(b.title);
+            });
+
+            const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            const start = (currentPage - 1) * itemsPerPage;
+            const paginated = filtered.slice(start, start + itemsPerPage);
+
+            document.getElementById('game-count-label').innerText = `Showing ${paginated.length} of ${filtered.length} games`;
+            document.getElementById('page-indicator').innerText = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prev-page-btn').disabled = currentPage <= 1;
+            document.getElementById('next-page-btn').disabled = currentPage >= totalPages;
+
+            if (paginated.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-20 passport-card rounded-2xl"><p class="text-xs text-passport-400">No games matched your query.</p></div>`;
+                return;
+            }
+
+            paginated.forEach(game => {
+                const libEntry = library[game.id] || { status: 'None', rating: 0 };
+                let statusBadge = '';
+                if (libEntry.status !== 'None') {
+                    statusBadge = `<span class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-black/80 backdrop-blur-md text-white border border-white/20 shadow-md">${libEntry.status}</span>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = "passport-card rounded-2xl overflow-hidden group cursor-pointer flex flex-col transition hover:-translate-y-1";
+                card.onclick = () => openGameDetail(game.id);
+                card.innerHTML = `
+                    <div class="relative aspect-[3/4] bg-passport-900 overflow-hidden">
+                        <img src="${game.cover}" alt="${game.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/400x600/1e293b/cbd5e1?text=No+Cover'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0f172a] via-transparent to-transparent opacity-80"></div>
+                        ${statusBadge}
+                        <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] font-mono text-passport-300">
+                            <span>${game.year}</span>
+                            <span class="flex items-center space-x-1 text-amber-400 font-bold"><i class="fa-solid fa-star text-[10px]"></i><span>${libEntry.rating ? libEntry.rating : game.rating}</span></span>
+                        </div>
+                    </div>
+                    <div class="p-3.5 flex flex-col flex-1 justify-between space-y-1 bg-[#0f172a]/40">
+                        <div>
+                            <span class="text-[10px] font-mono uppercase tracking-wider text-passport-400 block">${game.genre}</span>
+                            <h4 class="text-xs font-bold text-white line-clamp-1">${game.title}</h4>
+                        </div>
+                        <span class="text-[10px] text-passport-500 font-mono">${game.developer}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterGenre(genre) {
+            currentFilterGenre = genre;
+            currentPage = 1;
+            document.querySelectorAll('.genre-pill').forEach(btn => {
+                btn.className = "genre-pill px-4 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white hover:border-white/30 transition shrink-0 cursor-pointer";
+            });
+            const activeBtn = document.getElementById(`genre-${genre}`);
+            if(activeBtn) {
+                activeBtn.className = "genre-pill px-4 py-2 rounded-xl text-xs font-semibold bg-white text-black transition shrink-0 cursor-pointer shadow-sm";
+            }
+            renderCatalog();
+        }
+
+        function handleSearch(query) {
+            currentSearchQuery = query;
+            currentPage = 1;
+            renderCatalog();
+        }
+
+        function sortCatalog(sortVal) {
+            currentSort = sortVal;
+            renderCatalog();
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            renderCatalog();
+        }
+
+        // Game Detail & Library Management Modal
+        function openGameDetail(gameId) {
+            activeModalGameId = gameId;
+            const game = catalog.find(g => g.id === gameId);
+            if (!game) return;
+
+            document.getElementById('detail-header').style.backgroundImage = `url('${game.cover}')`;
+            document.getElementById('detail-cover').src = game.cover;
+            document.getElementById('detail-genre').innerText = game.genre;
+            document.getElementById('detail-title').innerText = game.title;
+            document.getElementById('detail-meta').innerText = `Released ${game.year} • ${game.developer}`;
+            document.getElementById('detail-description').innerText = game.desc;
+
+            const entry = library[gameId] || { status: 'None', rating: 0, playtime: '', platform: 'PC', review: '' };
+            document.getElementById('manage-status').value = entry.status;
+            document.getElementById('manage-playtime').value = entry.playtime || '';
+            document.getElementById('manage-platform').value = entry.platform || 'PC';
+            document.getElementById('manage-review').value = entry.review || '';
+
+            const ratingVal = entry.rating || 0;
+            document.querySelectorAll('.star-rating-input input').forEach(radio => {
+                radio.checked = parseInt(radio.value) === ratingVal;
+            });
+
+            updateFavoriteButtonState();
+            document.getElementById('modal-game-detail').classList.remove('hidden');
+        }
+
+        function saveLibraryEntry() {
+            if (!activeModalGameId) return;
+            const status = document.getElementById('manage-status').value;
+            
+            let rating = 0;
+            document.querySelectorAll('.star-rating-input input').forEach(radio => {
+                if (radio.checked) rating = parseInt(radio.value);
+            });
+
+            const playtime = document.getElementById('manage-playtime').value;
+            const platform = document.getElementById('manage-platform').value;
+            const review = document.getElementById('manage-review').value;
+
+            if (status === 'None') {
+                delete library[activeModalGameId];
+            } else {
+                library[activeModalGameId] = { status, rating, playtime, platform, review };
+            }
+
+            localStorage.setItem('playlog_library', JSON.stringify(library));
+            closeModal('modal-game-detail');
+            renderCatalog();
+            renderLibrary();
+            updateStats();
+        }
+
+        function toggleFavoriteCurrent() {
+            if (!activeModalGameId) return;
+            const idx = favorites.indexOf(activeModalGameId);
+            if (idx > -1) {
+                favorites.splice(idx, 1);
+            } else {
+                if (favorites.length >= 4) favorites.shift();
+                favorites.push(activeModalGameId);
+            }
+            localStorage.setItem('playlog_favorites', JSON.stringify(favorites));
+            updateFavoriteButtonState();
+            renderProfile();
+        }
+
+        function updateFavoriteButtonState() {
+            const btn = document.getElementById('favorite-btn');
+            const isFav = favorites.includes(activeModalGameId);
+            if (isFav) {
+                btn.innerHTML = `<i class="fa-solid fa-star text-amber-400"></i><span>Favorited</span>`;
+                btn.className = "text-xs font-semibold text-white flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 cursor-pointer";
+            } else {
+                btn.innerHTML = `<i class="fa-regular fa-star text-amber-400"></i><span>Favorite Showcase</span>`;
+                btn.className = "text-xs font-semibold text-passport-300 hover:text-white flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 cursor-pointer";
+            }
+        }
+
+        // Library Tab View
+        function filterLibrary(status) {
+            currentLibraryTab = status;
+            document.querySelectorAll('.lib-tab').forEach(btn => {
+                btn.className = "lib-tab px-3.5 py-2 rounded-xl text-xs font-medium passport-card text-passport-300 hover:text-white transition shrink-0 cursor-pointer";
+            });
+            const activeTab = document.getElementById(`lib-filter-${status}`);
+            if(activeTab) {
+                activeTab.className = "lib-tab px-3.5 py-2 rounded-xl text-xs font-semibold bg-white text-black transition shrink-0 cursor-pointer shadow-sm";
+            }
+            renderLibrary();
+        }
+
+        function renderLibrary() {
+            const grid = document.getElementById('library-grid');
+            const emptyState = document.getElementById('library-empty');
+            grid.innerHTML = '';
+
+            let countAll = 0, countPlaying = 0, countCompleted = 0, countBacklog = 0, countWishlist = 0, countDropped = 0;
+            const libEntriesArray = [];
+
+            Object.keys(library).forEach(gameId => {
+                const entry = library[gameId];
+                countAll++;
+                if (entry.status === 'Playing') countPlaying++;
+                if (entry.status === 'Completed') countCompleted++;
+                if (entry.status === 'Backlog') countBacklog++;
+                if (entry.status === 'Wishlist') countWishlist++;
+                if (entry.status === 'Dropped') countDropped++;
+
+                if (currentLibraryTab === 'all' || entry.status === currentLibraryTab) {
+                    libEntriesArray.push({ gameId: parseInt(gameId), ...entry });
+                }
+            });
+
+            document.getElementById('count-all').innerText = countAll;
+            document.getElementById('count-Playing').innerText = countPlaying;
+            document.getElementById('count-Completed').innerText = countCompleted;
+            document.getElementById('count-Backlog').innerText = countBacklog;
+            document.getElementById('count-Wishlist').innerText = countWishlist;
+            document.getElementById('count-Dropped').innerText = countDropped;
+
+            document.getElementById('library-count-badge').innerText = countAll;
+            document.getElementById('hero-tracked-count').innerText = countAll;
+            document.getElementById('hero-completed-count').innerText = countCompleted;
+
+            if (libEntriesArray.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            libEntriesArray.forEach(item => {
+                const game = catalog.find(g => g.id === item.gameId);
+                if (!game) return;
+
+                const card = document.createElement('div');
+                card.className = "passport-card p-4 rounded-2xl flex items-center space-x-4 cursor-pointer hover:border-white/20 transition";
+                card.onclick = () => openGameDetail(game.id);
+                card.innerHTML = `
+                    <img src="${game.cover}" alt="${game.title}" class="w-16 h-20 rounded-xl object-cover bg-passport-900 border border-white/10 shrink-0">
+                    <div class="flex-1 space-y-1">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-mono uppercase tracking-wider text-passport-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/10">${item.status}</span>
+                            <span class="text-xs font-mono text-amber-400 font-bold">${item.rating ? '⭐ ' + item.rating : ''}</span>
+                        </div>
+                        <h4 class="text-sm font-bold text-white line-clamp-1">${game.title}</h4>
+                        <p class="text-[11px] text-passport-400 font-mono">${item.playtime ? item.playtime + ' hrs played' : 'No hours logged'} • ${item.platform || 'PC'}</p>
+                        ${item.review ? `<p class="text-xs text-passport-300 line-clamp-1 italic">"${item.review}"</p>` : ''}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Diary Log Modal & List
+        function openLogModal() {
+            const select = document.getElementById('log-game-select');
+            select.innerHTML = '';
+            catalog.forEach(game => {
+                const opt = document.createElement('option');
+                opt.value = game.id;
+                opt.innerText = game.title;
+                select.appendChild(opt);
+            });
+            document.getElementById('modal-log').classList.remove('hidden');
+        }
+
+        function submitLogEntry() {
+            const gameId = parseInt(document.getElementById('log-game-select').value);
+            const rating = parseInt(document.getElementById('log-rating').value);
+            const hours = parseFloat(document.getElementById('log-hours').value) || 0;
+            const text = document.getElementById('log-text').value;
+
+            const entry = {
+                id: Date.now(),
+                gameId,
+                rating,
+                hours,
+                text,
+                date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            };
+
+            diary.unshift(entry);
+            localStorage.setItem('playlog_diary', JSON.stringify(diary));
+
+            if (library[gameId]) {
+                library[gameId].playtime = (parseFloat(library[gameId].playtime) || 0) + hours;
+            } else {
+                library[gameId] = { status: 'Playing', rating, playtime: hours, platform: 'PC', review: text };
+            }
+            localStorage.setItem('playlog_library', JSON.stringify(library));
+
+            closeModal('modal-log');
+            renderDiary();
+            renderLibrary();
+            updateStats();
+        }
+
+        function renderDiary() {
+            const list = document.getElementById('diary-list');
+            const empty = document.getElementById('diary-empty');
+            list.innerHTML = '';
+
+            if (diary.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            } else {
+                empty.classList.add('hidden');
+            }
+
+            diary.forEach(entry => {
+                const game = catalog.find(g => g.id === entry.gameId);
+                if (!game) return;
+
+                const item = document.createElement('div');
+                item.className = "passport-card p-5 rounded-2xl space-y-3";
+                item.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <img src="${game.cover}" alt="${game.title}" class="w-10 h-12 rounded-lg object-cover border border-white/10">
+                            <div>
+                                <h4 class="text-xs font-bold text-white">${game.title}</h4>
+                                <span class="text-[10px] text-passport-400 font-mono">${entry.date} • Session (+${entry.hours} hrs)</span>
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono font-bold text-amber-400">${'⭐'.repeat(entry.rating)}</span>
+                    </div>
+                    ${entry.text ? `<p class="text-xs text-passport-300 leading-relaxed bg-black/30 p-3 rounded-xl border border-white/[0.05]">"${entry.text}"</p>` : ''}
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // Community Taste Comparison
+        function selectCurator(handle, curatorName, curatorFavorites) {
+            const box = document.getElementById('curator-comparison-box');
+            const title = document.getElementById('curator-title');
+            const text = document.getElementById('curator-result-text');
+            const sharedContainer = document.getElementById('shared-favorites-list');
+            const matchBadge = document.getElementById('match-percentage');
+            box.classList.remove('hidden');
+
+            title.innerText = `Curator Profile: ${curatorName} (${handle})`;
+
+            // Calculate shared games with user library/favorites
+            let sharedCount = 0;
+            sharedContainer.innerHTML = '';
+
+            curatorFavorites.forEach(favTitle => {
+                const gameObj = catalog.find(g => g.title.toLowerCase() === favTitle.toLowerCase());
+                if (gameObj && (favorites.includes(gameObj.id) || library[gameObj.id])) {
+                    sharedCount++;
+                    const tag = document.createElement('span');
+                    tag.className = "px-3 py-1 rounded-lg bg-white/10 text-white text-xs font-mono border border-white/10 flex items-center space-x-1.5";
+                    tag.innerHTML = `<i class="fa-solid fa-check text-emerald-400 text-[10px]"></i><span>${gameObj.title}</span>`;
+                    sharedContainer.appendChild(tag);
+                }
+            });
+
+            const matchPct = 70 + (sharedCount * 7);
+            matchBadge.innerText = `${matchPct > 98 ? 98 : matchPct}% Taste Match`;
+
+            if (sharedCount > 0) {
+                text.innerText = `You share strong taste affinity with ${curatorName}! Both of you hold mutual appreciation for masterpiece design across your favorite shelves.`;
+            } else {
+                text.innerText = `You and ${curatorName} have differing gaming palettes, offering wonderful contrast in recommended titles. Try adding some of their favorite titles to your library to sync taste match!`;
+                sharedContainer.innerHTML = `<span class="text-xs text-passport-400 italic">No exact overlapping favorites yet. Add titles to your library to find matches!</span>`;
+            }
+        }
+
+        // Profile & Passport Hub
+        function openProfileEditModal() {
+            if(!profile) return;
+            document.getElementById('edit-name').value = profile.name;
+            document.getElementById('edit-handle').value = profile.handle;
+            document.getElementById('edit-avatar').value = profile.avatar;
+            document.getElementById('edit-bio').value = profile.bio;
+            document.getElementById('modal-profile-edit').classList.remove('hidden');
+        }
+
+        function saveProfile() {
+            if(!profile) profile = {};
+            profile.name = document.getElementById('edit-name').value || profile.name;
+            profile.handle = document.getElementById('edit-handle').value || profile.handle;
+            profile.avatar = document.getElementById('edit-avatar').value || profile.avatar;
+            profile.bio = document.getElementById('edit-bio').value || profile.bio;
+            localStorage.setItem('playlog_profile', JSON.stringify(profile));
+            closeModal('modal-profile-edit');
+            renderProfile();
+        }
+
+        function renderProfile() {
+            if (!profile) return;
+            document.getElementById('profile-name-display').innerText = profile.name;
+            document.getElementById('profile-handle-display').innerText = profile.handle;
+            document.getElementById('profile-bio-display').innerText = profile.bio;
+            document.getElementById('profile-avatar-display').src = profile.avatar;
+            document.getElementById('share-link-text').innerText = `playlog.app/${profile.handle.replace('@', '')}`;
+
+            const platformContainer = document.getElementById('profile-platforms-badge');
+            platformContainer.innerHTML = `<span class="px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-passport-200"><i class="fa-solid fa-gamepad text-white mr-1.5"></i> ${profile.platform || 'PC Rig'}</span>`;
+
+            const showcaseGrid = document.getElementById('favorite-showcase-grid');
+            showcaseGrid.innerHTML = '';
+            favorites.forEach(gameId => {
+                const game = catalog.find(g => g.id === gameId);
+                if (!game) return;
+                const card = document.createElement('div');
+                card.className = "passport-card p-3 rounded-xl flex items-center space-x-3 cursor-pointer hover:border-white/20 transition";
+                card.onclick = () => openGameDetail(game.id);
+                card.innerHTML = `
+                    <img src="${game.cover}" alt="${game.title}" class="w-12 h-14 rounded-lg object-cover border border-white/10 shrink-0">
+                    <div class="overflow-hidden">
+                        <span class="text-[9px] font-mono text-passport-400 uppercase block">Showcase</span>
+                        <h5 class="text-xs font-bold text-white truncate">${game.title}</h5>
+                    </div>
+                `;
+                showcaseGrid.appendChild(card);
+            });
+        }
+
+        function updateStats() {
+            let totalTracked = Object.keys(library).length;
+            let completed = 0;
+            let totalHours = 0;
+
+            Object.values(library).forEach(entry => {
+                if (entry.status === 'Completed') completed++;
+                totalHours += parseFloat(entry.playtime) || 0;
+            });
+
+            document.getElementById('stat-total').innerText = totalTracked;
+            document.getElementById('stat-completed').innerText = completed;
+            document.getElementById('stat-hours').innerText = totalHours + ' hrs';
+            document.getElementById('stat-reviews').innerText = diary.length;
+        }
+
+        function copyShareLink() {
+            const link = document.getElementById('share-link-text').innerText;
+            const dummy = document.createElement('textarea');
+            document.body.appendChild(dummy);
+            dummy.value = `https://${link}`;
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+            alert("Share link copied to clipboard!");
+        }
+
+        // Custom Game Creation
+        function openCustomGameModal() {
+            document.getElementById('modal-custom-game').classList.remove('hidden');
+        }
+
+        function submitCustomGame() {
+            const title = document.getElementById('custom-title').value;
+            const genre = document.getElementById('custom-genre').value || 'Indie';
+            const year = parseInt(document.getElementById('custom-year').value) || 2026;
+            const developer = document.getElementById('custom-developer').value || 'Independent';
+            const cover = document.getElementById('custom-cover').value || 'https://placehold.co/400x600/1e293b/cbd5e1?text=Game';
+            const desc = document.getElementById('custom-desc').value || 'Custom added game session.';
+
+            if (!title) return;
+
+            const newGame = {
+                id: Date.now(),
+                title,
+                genre,
+                year,
+                developer,
+                cover,
+                desc,
+                rating: 4.5
+            };
+
+            catalog.unshift(newGame);
+            localStorage.setItem('playlog_catalog', JSON.stringify(catalog));
+            closeModal('modal-custom-game');
+            renderCatalog();
+        }
+
+        // Backup Export / Import
+        function exportBackup() {
+            const data = { catalog, library, diary, profile, favorites };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'playlog_passport_backup.json';
+            a.click();
+        }
+
+        function importBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.catalog) catalog = data.catalog;
+                    if (data.library) library = data.library;
+                    if (data.diary) diary = data.diary;
+                    if (data.profile) profile = data.profile;
+                    if (data.favorites) favorites = data.favorites;
+
+                    localStorage.setItem('playlog_catalog', JSON.stringify(catalog));
+                    localStorage.setItem('playlog_library', JSON.stringify(library));
+                    localStorage.setItem('playlog_diary', JSON.stringify(diary));
+                    localStorage.setItem('playlog_profile', JSON.stringify(profile));
+                    localStorage.setItem('playlog_favorites', JSON.stringify(favorites));
+
+                    renderProfile();
+                    renderCatalog();
+                    renderLibrary();
+                    renderDiary();
+                    updateStats();
+                } catch(err) {
+                    console.error("Invalid JSON file");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
